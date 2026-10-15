@@ -12,7 +12,6 @@ import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -61,7 +60,7 @@ private enum class SettingsTab(
 }
 
 /**
- * Settings screen with bottom navigation and swipeable tabs.
+ * Settings screen with swipeable tabs under a floating bottom navigation.
  */
 @Composable
 fun SettingsScreen(
@@ -368,14 +367,24 @@ fun SettingsScreen(
                         }
                 )
                 // Overlay sits outside the pager, which clips each page to its own bounds
-                Box(
+                FloatingPillBarLayout(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                ) {
-                    // The bottom navigation's own padding already sits under each tab
+                        .weight(1f),
+                    bar = {
+                        BottomNavigation(
+                            currentTab = currentTab,
+                            onTabSelected = { tab ->
+                                coroutineScope.launch { pagerState.animateScrollToPage(tab.ordinal) }
+                            },
+                            onAppearanceTabPositioned = { globalOnboardingState?.appearanceTabBounds = it },
+                            onSystemTabPositioned = { globalOnboardingState?.systemTabBounds = it }
+                        )
+                    }
+                ) { navigationHeight ->
+                    // The tabs scroll on under the floating navigation, and end clear of it
                     CompositionLocalProvider(
-                        LocalSettingsTabBottomPadding provides Defaults.ContentPadding - Defaults.ItemSpacing
+                        LocalSettingsTabBottomPadding provides navigationHeight + Defaults.ItemSpacing
                     ) {
                         HorizontalPager(
                             state = pagerState,
@@ -383,17 +392,8 @@ fun SettingsScreen(
                         ) { page -> TabContent(SettingsTab.entries[page]) }
                     }
 
-                    ListScrollbar(scrollState = currentScrollState)
+                    ListScrollbar(scrollState = currentScrollState, extraBottomPadding = navigationHeight)
                 }
-
-                BottomNavigation(
-                    currentTab = currentTab,
-                    onTabSelected = { tab ->
-                        coroutineScope.launch { pagerState.animateScrollToPage(tab.ordinal) }
-                    },
-                    onAppearanceTabPositioned = { globalOnboardingState?.appearanceTabBounds = it },
-                    onSystemTabPositioned = { globalOnboardingState?.systemTabBounds = it }
-                )
             }
         }
     }
@@ -457,79 +457,33 @@ private fun LandscapeNavPanel(
 }
 
 /**
- * Bottom navigation bar.
+ * Bottom navigation of the tabs, floating over their content.
  */
 @Composable
 private fun BottomNavigation(
     currentTab: SettingsTab,
     onTabSelected: (SettingsTab) -> Unit,
+    modifier: Modifier = Modifier,
     onAppearanceTabPositioned: ((Rect) -> Unit)? = null,
     onSystemTabPositioned: ((Rect) -> Unit)? = null
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding(),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier
-                .widthIn(max = 448.dp)
-                .fillMaxWidth()
-                .padding(
-                    horizontal = Defaults.ContentPadding,
-                    vertical = Defaults.ItemSpacing
-                )
-                .animateContentSize(),
-            horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SettingsTab.entries.forEach { tab ->
-                val isSelected = currentTab == tab
-                NavigationItem(
-                    tab = tab,
-                    isSelected = isSelected,
-                    onClick = { onTabSelected(tab) },
-                    modifier = Modifier
-                        .then(if (isSelected) Modifier.weight(1f) else Modifier.width(64.dp))
-                        .then(
-                            when (tab) {
-                                SettingsTab.APPEARANCE if onAppearanceTabPositioned != null ->
-                                    Modifier.onGloballyPositioned { coords ->
-                                        onAppearanceTabPositioned(coords.boundsInWindow())
-                                    }
+    val items = SettingsTab.entries.map { tab ->
+        FloatingPillItem(
+            icon = tab.icon,
+            label = stringResource(tab.titleRes),
+            onClick = { onTabSelected(tab) },
+            selected = currentTab == tab,
+            modifier = when (tab) {
+                SettingsTab.APPEARANCE if onAppearanceTabPositioned != null ->
+                    Modifier.onGloballyPositioned { onAppearanceTabPositioned(it.boundsInWindow()) }
 
-                                SettingsTab.SYSTEM if onSystemTabPositioned != null ->
-                                    Modifier.onGloballyPositioned { coords ->
-                                        onSystemTabPositioned(coords.boundsInWindow())
-                                    }
+                SettingsTab.SYSTEM if onSystemTabPositioned != null ->
+                    Modifier.onGloballyPositioned { onSystemTabPositioned(it.boundsInWindow()) }
 
-                                else -> Modifier
-                            }
-                        )
-                )
+                else -> Modifier
             }
-        }
+        )
     }
-}
 
-/**
- * Individual navigation item.
- */
-@Composable
-private fun NavigationItem(
-    tab: SettingsTab,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    GlassButton(
-        icon = tab.icon,
-        label = stringResource(tab.titleRes),
-        selected = isSelected,
-        onClick = onClick,
-        modifier = modifier,
-        pressScale = true,
-        hapticFeedback = true
-    )
+    FloatingPillBar(items = items, modifier = modifier)
 }

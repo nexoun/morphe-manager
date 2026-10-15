@@ -54,6 +54,7 @@ import app.morphe.manager.ui.viewmodel.BatchPatcherViewModel
 import app.morphe.manager.ui.viewmodel.InstallViewModel
 import app.morphe.manager.util.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.milliseconds
@@ -189,6 +190,7 @@ fun BatchPatcherScreen(
     }
 
     var showCancelDialog by remember { mutableStateOf(false) }
+    var showClearDialog by remember { mutableStateOf(false) }
 
     BackHandler {
         if (current?.isActive == true) showCancelDialog = true else onBackClick()
@@ -207,6 +209,21 @@ fun BatchPatcherScreen(
                 viewModel.cancel()
             },
             onDismiss = { showCancelDialog = false }
+        )
+    }
+
+    if (showClearDialog) {
+        ConfirmDialog(
+            title = stringResource(R.string.batch_queue_clear_title),
+            message = stringResource(R.string.batch_queue_clear_description),
+            primaryText = stringResource(R.string.yes),
+            secondaryText = stringResource(R.string.no),
+            onConfirm = {
+                showClearDialog = false
+                viewModel.clear()
+                onBackClick()
+            },
+            onDismiss = { showClearDialog = false }
         )
     }
 
@@ -381,18 +398,13 @@ fun BatchPatcherScreen(
 
     LaunchedEffect(exportItem) {
         val item = exportItem ?: return@LaunchedEffect
-        exportLauncher.launch(
-            ExportNameFormatter.format(
-                null,
-                PatchedAppExportData(
-                    appName = item.appName,
-                    packageName = item.id,
-                    appVersion = item.version,
-                    patchBundleVersions = item.bundles.mapNotNull { it.version?.takeIf(String::isNotBlank) },
-                    patchBundleNames = item.bundles.map { it.name }
-                )
-            )
-        )
+        exportLauncher.launch(item.exportFileName())
+    }
+
+    // Shared under the names a save would give them, so each app can be told apart where it lands
+    fun share(items: List<BatchPatchItem>) {
+        val names = items.mapNotNull { item -> item.patchedFile?.let { it to item.exportFileName() } }.toMap()
+        scope.launch { context.shareApks(names.keys.toList()) { names.getValue(it) } }
     }
 
     // Cards clamp the failure text, so the full reason lives in the patcher's own error dialog
@@ -495,7 +507,11 @@ fun BatchPatcherScreen(
         if (current?.phase == BatchPhase.FINISHED) viewModel.clear()
         onBackClick()
     }
-    val hasUnfinished = current?.items.orEmpty().any {
+    val isPreflight = current?.phase == BatchPhase.PREFLIGHT
+    val isFinished = current?.phase == BatchPhase.FINISHED
+    val patchedItems = if (isFinished) current?.patchedItems.orEmpty() else emptyList()
+    val hasPatched = patchedItems.isNotEmpty()
+    val hasUnfinished = isFinished && current?.items.orEmpty().any {
         it.state == BatchItemState.FAILED || it.state == BatchItemState.CANCELLED
     }
 
@@ -525,14 +541,34 @@ fun BatchPatcherScreen(
             subtitle = current?.let { batchSummary(it) }.orEmpty(),
             subtitleLoading = current == null,
             accentColor = accent,
-            actions = if (current?.phase == BatchPhase.FINISHED && hasUnfinished) {
+            actions = if (isPreflight || hasPatched || hasUnfinished) {
                 {
-                    TitleAction(
-                        icon = Icons.Outlined.Refresh,
-                        contentDescription = stringResource(R.string.retry),
-                        onClick = viewModel::retryUnfinished,
-                        style = TitleActionStyle.Accent
-                    )
+                    // Kept out of the footer, where the button beside Start only closes the screen
+                    if (isPreflight) {
+                        TitleAction(
+                            icon = Icons.Outlined.Delete,
+                            contentDescription = stringResource(R.string.clear),
+                            onClick = { showClearDialog = true },
+                            style = TitleActionStyle.Destructive
+                        )
+                    }
+                    // Every APK the run made in one go, for sending them on together
+                    if (hasPatched) {
+                        TitleAction(
+                            icon = Icons.Outlined.Share,
+                            contentDescription = stringResource(R.string.share),
+                            onClick = { share(patchedItems) },
+                            style = TitleActionStyle.Accent
+                        )
+                    }
+                    if (hasUnfinished) {
+                        TitleAction(
+                            icon = Icons.Outlined.Refresh,
+                            contentDescription = stringResource(R.string.retry),
+                            onClick = viewModel::retryUnfinished,
+                            style = TitleActionStyle.Accent
+                        )
+                    }
                 }
             } else {
                 null
@@ -609,6 +645,7 @@ fun BatchPatcherScreen(
                         ?.let { { viewModel.beginSourcePick(item) } },
                     onInstall = request?.let { { startInstallQueue(listOf(it)) } },
                     onExport = item.patchedFile?.let { { exportItem = item } },
+                    onShare = item.patchedFile?.let { { share(listOf(item)) } },
                     onOpen = item.installedPackageName
                         ?.takeIf { item.installOutcome == BatchInstallOutcome.INSTALLED }
                         ?.let { { viewModel.openApp(it) } },
@@ -633,12 +670,13 @@ private fun BatchDialogButtons(
     onClose: () -> Unit
 ) {
     when (state?.phase) {
+        // Closing keeps the queue for apps added later
         BatchPhase.PREFLIGHT -> AppDialogButtonRow(
             primaryText = stringResource(R.string.batch_patch_start),
             primaryIcon = Icons.Outlined.PlayArrow,
             onPrimaryClick = onStart,
             primaryEnabled = state.runnable.isNotEmpty(),
-            secondaryText = stringResource(android.R.string.cancel),
+            secondaryText = stringResource(R.string.close),
             onSecondaryClick = onClose
         )
 
@@ -761,6 +799,7 @@ private fun BatchItemCard(
     onPickSource: (() -> Unit)? = null,
     onInstall: (() -> Unit)? = null,
     onExport: (() -> Unit)? = null,
+    onShare: (() -> Unit)? = null,
     onOpen: (() -> Unit)? = null,
     onShowError: () -> Unit = {}
 ) {
@@ -994,6 +1033,16 @@ private fun BatchItemCard(
                             )
                         }
 
+                        if (onShare != null) {
+                            val shareLabel = stringResource(R.string.share)
+                            ActionPillButton(
+                                onClick = onShare,
+                                icon = Icons.Outlined.Share,
+                                contentDescription = shareLabel,
+                                tooltip = shareLabel
+                            )
+                        }
+
                         if (onOpen != null) {
                             val openLabel = stringResource(R.string.open)
                             ActionPillButton(
@@ -1009,6 +1058,18 @@ private fun BatchItemCard(
         }
     }
 }
+
+/** The name a saved or shared APK of [this] item goes by, the one the single-app flow gives it. */
+private fun BatchPatchItem.exportFileName(): String = ExportNameFormatter.format(
+    null,
+    PatchedAppExportData(
+        appName = appName,
+        packageName = id,
+        appVersion = version,
+        patchBundleVersions = bundles.mapNotNull { it.version?.takeIf(String::isNotBlank) },
+        patchBundleNames = bundles.map { it.name }
+    )
+)
 
 /** Second detail line: either why the app cannot run, or what it will be patched from. */
 @Composable

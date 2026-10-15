@@ -69,11 +69,13 @@ import app.morphe.manager.domain.repository.appsBrought
 import app.morphe.manager.ui.screen.patcher.IncompatiblePatcherVersionDialog
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.util.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Enough placeholder rows to fill the sheet on open without implying a count. */
 private val SourceShimmerRows = (0 until 4).toList()
@@ -83,6 +85,12 @@ private const val BUNDLE_GLYPH_FRACTION = 0.55f
 
 /** How far a switched off source's icon and the lines under its name fade back. */
 private const val DISABLED_SOURCE_ALPHA = 0.7f
+
+/**
+ * How long the cards keep gliding after a new order is picked, enough for [Animations.listSpring]
+ * to settle.
+ */
+private val SortSettleTime = 600.milliseconds
 
 /**
  * Bottom sheet for managing patch bundles.
@@ -117,9 +125,17 @@ fun BundleManagementSheet(
     val bundleInfo by patchBundleRepository.allBundlesInfoFlow.collectAsStateWithLifecycle(emptyMap())
     val blockedSources by patchBundleRepository.blockedSources.collectAsStateWithLifecycle(emptyMap())
     val keptFrom by sourceMuteRepository.mutedSources.collectAsStateWithLifecycle(emptyMap())
-    // How many of its apps each source still brings, out of all it names
-    val appCounts = remember(bundleInfo, keptFrom) {
-        bundleInfo.mapValues { (_, info) -> info.appsBrought(keptFrom).size to info.listedApps().size }
+    val unseenNewApps by sourceMuteRepository.unseenNewApps.collectAsStateWithLifecycle(emptyMap())
+    val appCounts = remember(bundleInfo, keptFrom, unseenNewApps) {
+        bundleInfo.mapValues { (uid, info) ->
+            val listed = info.listedApps()
+            SourceAppCount(
+                brought = info.appsBrought(keptFrom).size,
+                listed = listed.size,
+                // An app the source has since dropped is nothing left to look at
+                unseen = unseenNewApps[uid].orEmpty().count { it in listed }
+            )
+        }
     }
 
     val showSheetOnboarding = globalOnboardingState?.sheetOnboardingActive == true
@@ -128,7 +144,7 @@ fun BundleManagementSheet(
     // Set when the user flips pre-releases on: the toggle waits for confirmation first,
     // so the meaning of unstable testing builds is explained before anything changes
     val bundleToConfirmPrerelease = remember { mutableStateOf<PatchBundleSource?>(null) }
-    var showSortDialog by remember { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) }
     // Search is offered from two sources up
     val isSearchable = sources.size >= 2
     val search = rememberSearchFieldState(searchable = isSearchable)
@@ -152,6 +168,8 @@ fun BundleManagementSheet(
     }
     var localOrder by remember { mutableStateOf(sources.map { it.uid }) }
     var isDragging by remember { mutableStateOf(false) }
+    // Set while the cards move into a new sort order, see SortSettleTime
+    var isSettlingSort by remember { mutableStateOf(false) }
     LaunchedEffect(sources) {
         if (isDragging) return@LaunchedEffect
         val sourceUids = sources.map { it.uid }
@@ -163,6 +181,14 @@ fun BundleManagementSheet(
     val sortModePreference by prefs.sourceBundleSortMode.getAsState()
     val sourceSortMode = SourceBundleSortMode.fromPreference(sortModePreference)
     val isManualSort = sourceSortMode == SourceBundleSortMode.MANUAL
+    // The list otherwise holds on to whichever source led it, which a new order leaves somewhere
+    // in the middle, so a new order starts the list over from its top. Requested in the pass that
+    // brings the order, so the list is laid out from the top at once rather than a frame later
+    val listedSortMode = remember { mutableListOf(sourceSortMode) }
+    if (listedSortMode[0] != sourceSortMode) {
+        listedSortMode[0] = sourceSortMode
+        listState.requestScrollToItem(0)
+    }
     val orderedSources = remember(localOrder, sources, sourceSortMode) {
         sources.sortedForSourceSort(sourceSortMode, localOrder)
     }
@@ -296,16 +322,35 @@ fun BundleManagementSheet(
                             )
 
                             val activeSortLabel = stringResource(sourceSortMode.labelRes)
-                            TitleAction(
-                                icon = Icons.AutoMirrored.Outlined.Sort,
-                                contentDescription = stringResource(R.string.sort),
-                                onClick = { showSortDialog = true },
-                                modifier = Modifier.semantics {
-                                    role = Role.Button
-                                    stateDescription = activeSortLabel
-                                },
-                                style = TitleActionStyle.Neutral
-                            )
+                            Box {
+                                TitleAction(
+                                    icon = Icons.AutoMirrored.Outlined.Sort,
+                                    contentDescription = stringResource(R.string.sort),
+                                    onClick = { showSortMenu = true },
+                                    modifier = Modifier.semantics {
+                                        role = Role.Button
+                                        stateDescription = activeSortLabel
+                                    },
+                                    style = TitleActionStyle.Toggle,
+                                    active = showSortMenu
+                                )
+                                SortModeMenu(
+                                    expanded = showSortMenu,
+                                    onDismissRequest = { showSortMenu = false },
+                                    current = sourceSortMode,
+                                    options = sortModeOptions<SourceBundleSortMode>(),
+                                    onSelect = { mode ->
+                                        scope.launch {
+                                            // Raised ahead of the new order, so the pass that lays it
+                                            // out already moves the cards rather than placing them
+                                            isSettlingSort = true
+                                            prefs.sourceBundleSortMode.update(mode.name)
+                                            delay(SortSettleTime)
+                                            isSettlingSort = false
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                     TitleAction(
@@ -385,10 +430,11 @@ fun BundleManagementSheet(
                             ReorderableItem(
                                 reorderableState,
                                 key = bundle.uid,
-                                // Only wanted while dragging: elsewhere it lags behind a card growing
-                                // on expand, letting it overlap the one below
-                                animateItemModifier = if (isDragging) {
-                                    Modifier.animateItem()
+                                // Only wanted while the cards change places, by a drag or a new sort
+                                // order: elsewhere it lags behind a card growing on expand, letting it
+                                // overlap the one below
+                                animateItemModifier = if (isDragging || isSettlingSort) {
+                                    Modifier.animatedListItem(this)
                                 } else {
                                     Modifier.animateItem(placementSpec = null)
                                 }
@@ -398,7 +444,7 @@ fun BundleManagementSheet(
                                     info = SourceCardInfo(
                                         patchCount = patchCounts[bundle.uid] ?: 0,
                                         patchMatchCount = patchMatchCounts[bundle.uid],
-                                        appCount = appCounts[bundle.uid] ?: (0 to 0),
+                                        appCount = appCounts[bundle.uid] ?: SourceAppCount.NONE,
                                         updateInfo = manualUpdateInfo[bundle.uid],
                                         isUpdating = bundle.uid in activeUpdateUids,
                                         metadataFetchError = metadataFetchErrors[bundle.uid],
@@ -505,19 +551,6 @@ fun BundleManagementSheet(
                 }
             }
         }
-    }
-
-    if (showSortDialog) {
-        SortModeSelectionDialog(
-            title = stringResource(R.string.sources_sort_title),
-            current = sourceSortMode,
-            options = sortModeOptions<SourceBundleSortMode>(),
-            onSelect = { mode ->
-                scope.launch { prefs.sourceBundleSortMode.update(mode.name) }
-                showSortDialog = false
-            },
-            onDismiss = { showSortDialog = false }
-        )
     }
 
     // Delete confirmation dialog
@@ -629,13 +662,22 @@ private fun PatchBundleSource.sourceSortTitle(): String =
 private fun PatchBundleSource.matchesQuery(query: String): Boolean =
     displayTitle.contains(query, ignoreCase = true) || name.contains(query, ignoreCase = true)
 
+/**
+ * Apps a source still [brought] to the home screen, out of all it [listed], and how many of them
+ * were left out on arrival without the user having looked yet. None listed drops the card's row.
+ */
+private data class SourceAppCount(val brought: Int, val listed: Int, val unseen: Int) {
+    companion object {
+        val NONE = SourceAppCount(0, 0, 0)
+    }
+}
+
 /** What a source card reports about its source, beyond the source itself. */
 private data class SourceCardInfo(
     val patchCount: Int,
     /** Patches matching the sheet's search, or null while nothing is searched. */
     val patchMatchCount: Int?,
-    /** Apps the source still brings, out of all it names. None named drops the row. */
-    val appCount: Pair<Int, Int>,
+    val appCount: SourceAppCount,
     val updateInfo: PatchBundleRepository.ManualBundleUpdateInfo?,
     val isUpdating: Boolean,
     val metadataFetchError: Throwable?,
@@ -878,17 +920,22 @@ private fun BundleManagementCard(
                             // Apps, for any source naming some. It is also the one way back from an
                             // app kept from the source that does not depend on which mode the user
                             // patches in
-                            val (offeredApps, listedApps) = info.appCount
+                            val (broughtApps, listedApps, unseenApps) = info.appCount
                             if (listedApps > 0) {
                                 SettingsDivider()
 
+                                val count = if (broughtApps < listedApps) {
+                                    "$broughtApps/$listedApps"
+                                } else {
+                                    listedApps.toString()
+                                }
                                 InfoRow(
                                     icon = Icons.Outlined.Apps,
                                     label = stringResource(R.string.sources_apps),
-                                    value = if (offeredApps < listedApps) {
-                                        "$offeredApps/$listedApps"
+                                    value = if (unseenApps > 0) {
+                                        pluralStringResource(R.plurals.sources_apps_count_with_new, unseenApps, count, unseenApps)
                                     } else {
-                                        listedApps.toString()
+                                        count
                                     },
                                     onClick = actions.onAppsClick,
                                     enabled = !info.isUpdating

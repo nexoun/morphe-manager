@@ -1,3 +1,112 @@
+# [1.36.0-dev.7](https://github.com/MorpheApp/morphe-manager/compare/v1.36.0-dev.6...v1.36.0-dev.7) (2026-10-15)
+
+
+### Features
+
+* Drop the active filter row above the home list ([#1162](https://github.com/MorpheApp/morphe-manager/issues/1162)) ([61f0611](https://github.com/MorpheApp/morphe-manager/commit/61f0611d4da4c64f3ff8a038e73b9aeba23b4b0e))
+
+# [1.36.0-dev.6](https://github.com/MorpheApp/morphe-manager/compare/v1.36.0-dev.5...v1.36.0-dev.6) (2026-10-15)
+
+
+### Bug Fixes
+
+* Leave the apps already queued out of the repatch alert ([efe1ffb](https://github.com/MorpheApp/morphe-manager/commit/efe1ffb5ed482857dddb38ce398f55b3aac55b18))
+* Show the root cause of a failed patch instead of its dependency wrapper ([e5dfe73](https://github.com/MorpheApp/morphe-manager/commit/e5dfe7350f56f748e3bb15d3a3195b08fc46b2fe))
+
+
+### Features
+
+* Drag the home alert stack open and shut ([afd2a66](https://github.com/MorpheApp/morphe-manager/commit/afd2a667aca5b18d4ff4732054ec5d144a3de890))
+
+# [1.36.0-dev.5](https://github.com/MorpheApp/morphe-manager/compare/v1.36.0-dev.4...v1.36.0-dev.5) (2026-10-15)
+
+
+### Bug Fixes
+
+* Keep the home cards in place when coming back from settings ([7bb779c](https://github.com/MorpheApp/morphe-manager/commit/7bb779cd1cd07c82a251f41673dde813d43231fa))
+* Size the home alert chips like standard chips ([1f4b805](https://github.com/MorpheApp/morphe-manager/commit/1f4b8059ee896f37cdb80262354c93e511bc2fe6))
+* Slide the snoozed alerts' bell smoothly and keep its count while it leaves ([394c815](https://github.com/MorpheApp/morphe-manager/commit/394c815a1fcbc673b3a948d982209a5bfc9e5c46))
+
+
+### Features
+
+* Stack the source update with the home alerts and show the next one under a swipe ([5823c18](https://github.com/MorpheApp/morphe-manager/commit/5823c181cd61b4eae0da2ad4f9bb8b961a761e80))
+
+# [1.36.0-dev.4](https://github.com/MorpheApp/morphe-manager/compare/v1.36.0-dev.3...v1.36.0-dev.4) (2026-10-15)
+
+
+### Bug Fixes
+
+* Keep the marks on an app's icon from outgrowing it under a large system font ([97a33ad](https://github.com/MorpheApp/morphe-manager/commit/97a33ad758c86a2f3a1c26557b14f072c4c73a94))
+
+
+### Features
+
+* Float the home and settings bottom bars over their content ([4b09591](https://github.com/MorpheApp/morphe-manager/commit/4b095914b347b0855b0145b206f6f06d490af629))
+* Keep the batch queue between visits so apps can be added to it later ([b619c47](https://github.com/MorpheApp/morphe-manager/commit/b619c47134a18f6a38d2bd93bb2fc8ec28a60e9e))
+* Stack the home screen alerts and let a swipe snooze them behind a bell ([8816901](https://github.com/MorpheApp/morphe-manager/commit/88169012ec42b59f6fff16b59f9058d5a11eda1b))
+
+# [1.36.0-dev.3](https://github.com/MorpheApp/morphe-manager/compare/v1.36.0-dev.2...v1.36.0-dev.3) (2026-10-14)
+
+
+### Bug Fixes
+
+* Choose the apps of a source by their checks alone and say why a patched app stays ([ba12b80](https://github.com/MorpheApp/morphe-manager/commit/ba12b8067dbcb603443fe19c9eff808fc97f1078))
+* Play the completion sound at the level of other notifications, and only when asked for ([45282df](https://github.com/MorpheApp/morphe-manager/commit/45282df0ee877d71e9352d884658ca544d46d2ba))
+* Show the picture a patch source ships rather than its owner's avatar ([2fcfb7e](https://github.com/MorpheApp/morphe-manager/commit/2fcfb7ee90761fecaf7abd5d1a049c6579178fd7))
+
+
+### Features
+
+* Mark app updates on the home screen icon, telling a newer version from newer patches ([770e50e](https://github.com/MorpheApp/morphe-manager/commit/770e50ef1d134ae844705de5f974a5e0383bba5f))
+
+
+### Performance Improvements
+
+* Keep the avatars of patch sources on disk so they show at once after a restart ([be01dc7](https://github.com/MorpheApp/morphe-manager/commit/be01dc7867ad81a91d28144bc4e6d743e93b7b9d))
+
+# [1.36.0-dev.2](https://github.com/MorpheApp/morphe-manager/compare/v1.36.0-dev.1...v1.36.0-dev.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* Copy the stock APK of root mounts from the installed app ([#1156](https://github.com/MorpheApp/morphe-manager/issues/1156)) ([69dbb80](https://github.com/MorpheApp/morphe-manager/commit/69dbb809e9b05cf5178b5d178890bbf2a94f9d38))
+* Keep root mounted apps through a restart of the framework alone ([05dbc46](https://github.com/MorpheApp/morphe-manager/commit/05dbc462a5b6fb0aab7be9df679fb938e9c89028))
+* Stop the unmount loops of root mounts at a bound so mounting cannot hang ([d484aaa](https://github.com/MorpheApp/morphe-manager/commit/d484aaada1ca12c20c21dfe8a016d95828b9c1cf))
+
+
+### Features
+
+* Leave out the apps a patch source adds later and add a source for one app from a link ([4d55a36](https://github.com/MorpheApp/morphe-manager/commit/4d55a365f011fcd2953ed0f03b242739e9c712a6))
+
+# [1.36.0-dev.1](https://github.com/MorpheApp/morphe-manager/compare/v1.35.1-dev.1...v1.36.0-dev.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* Let dialogs fill narrow screens up to the shared content width ([#1150](https://github.com/MorpheApp/morphe-manager/issues/1150)) ([3cc5739](https://github.com/MorpheApp/morphe-manager/commit/3cc57395a6e0ed2fd081ac4369c2c58e05e51bd4))
+
+
+### Features
+
+* Let a patch update be ignored until the next release of its source ([a75a3f4](https://github.com/MorpheApp/morphe-manager/commit/a75a3f4bd3e70b350a2943b6459ffe82a1ad41f2))
+* Pick sorting, filtering and grouping of home apps from one sheet ([6ff2b73](https://github.com/MorpheApp/morphe-manager/commit/6ff2b73919caa457eb110c9d4f7d89b588f917a1))
+* Share patched APKs from the result screen and keep its actions in reach at any font size ([5d63cce](https://github.com/MorpheApp/morphe-manager/commit/5d63cce71d7dc154c0f77fc8d5dbd732c8540e46))
+* Show the newest files first in the file picker by default ([ea1e242](https://github.com/MorpheApp/morphe-manager/commit/ea1e24259aeb579dd2b4e57d309a9140616597c7))
+
+## [1.35.1-dev.1](https://github.com/MorpheApp/morphe-manager/compare/v1.35.0...v1.35.1-dev.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* Drop the record a failed first mount created ([921f838](https://github.com/MorpheApp/morphe-manager/commit/921f8382eb1feba7c8b297b13eb24bd5da22a5b4))
+* Keep mount installs recorded when the process dies mid-mount ([8e82be8](https://github.com/MorpheApp/morphe-manager/commit/8e82be8f8b3576f1a5da7be7d3406e7591fa64da))
+
+
+### Performance Improvements
+
+* Find the namespaces to remount in single passes at boot ([8e81917](https://github.com/MorpheApp/morphe-manager/commit/8e819178f429a56608bb30fc7e4b7393a6f628b6))
+
 # [1.35.0](https://github.com/MorpheApp/morphe-manager/compare/v1.34.0...v1.35.0) (2026-10-10)
 
 

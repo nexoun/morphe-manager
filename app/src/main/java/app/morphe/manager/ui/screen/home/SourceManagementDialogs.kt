@@ -9,7 +9,6 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,7 +26,11 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboard
@@ -36,8 +39,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,11 +52,13 @@ import app.morphe.manager.domain.bundles.APIPatchBundle
 import app.morphe.manager.domain.bundles.PatchBundleSource
 import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.usesPrerelease
 import app.morphe.manager.domain.bundles.RemotePatchBundle
+import app.morphe.manager.domain.repository.InstalledAppRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository.LocalFileCheck
 import app.morphe.manager.domain.repository.PatchBundleRepository.RemoteSourceRejection
 import app.morphe.manager.domain.repository.PatchBundleRepository.RemoteUrlCheck
 import app.morphe.manager.domain.repository.SourceMuteRepository
+import app.morphe.manager.domain.repository.appsBrought
 import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.patcher.patch.appIconColorOf
 import app.morphe.manager.ui.screen.shared.*
@@ -136,7 +141,8 @@ fun AddSourceDialog(
                             icon = Icons.AutoMirrored.Outlined.OpenInNew,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        Spacer(modifier = Modifier.height(Defaults.ContentPadding / 2))
+                        // As far as the buttons under it stand apart, so the three read as one grid
+                        Spacer(modifier = Modifier.height(Defaults.ItemSpacing))
                     }
                 }
                 AppDialogButtonRow(
@@ -174,7 +180,8 @@ fun AddSourceDialog(
             below = {
                 // What a source holds is only known once it has loaded, so this asks now and
                 // the list opens then
-                ChooseAppsToggle(
+                SelectionCheckRow(
+                    text = stringResource(R.string.sources_dialog_choose_apps_description),
                     checked = chooseApps,
                     onCheckedChange = { chooseApps = it }
                 )
@@ -190,26 +197,6 @@ fun AddSourceDialog(
             }
         }
     }
-}
-
-/**
- * Asks, while a source is being added, whether to open [SourceAppsDialog] once it has loaded.
- */
-@Composable
-internal fun ChooseAppsToggle(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    SettingsSwitchItem(
-        checked = checked,
-        onToggle = { onCheckedChange(!checked) },
-        icon = Icons.Outlined.Apps,
-        title = stringResource(R.string.sources_dialog_choose_apps),
-        subtitle = stringResource(R.string.sources_dialog_choose_apps_description),
-        showBorder = true,
-        modifier = modifier
-    )
 }
 
 /** Links in pasted text however they came: one per line, in a list, or inside prose or markdown. */
@@ -322,18 +309,18 @@ private val REPOSITORY_HOST_ICONS: Map<String, ImageVector> by lazy {
 }
 
 /** The link without its scheme, the way it reads in the address bar. */
-private fun String.bareLink() = substringAfter("://").removePrefix("www.")
+internal fun String.bareLink() = substringAfter("://").removePrefix("www.")
 
 private fun String.linkHost() = bareLink().substringBefore('/').lowercase(Locale.US)
 
 /** A repository as owner/repo, anything else as its bare link. */
-private fun remoteLinkTitle(link: String): String {
+internal fun remoteLinkTitle(link: String): String {
     val bare = link.bareLink()
     val segments = bare.substringAfter('/', "").split('/').filter { it.isNotBlank() }
     return if (link.linkHost() in REPOSITORY_HOST_ICONS && segments.size >= 2) "${segments[0]}/${segments[1]}" else bare
 }
 
-private fun remoteLinkIcon(link: String): ImageVector = REPOSITORY_HOST_ICONS[link.linkHost()] ?: Icons.Outlined.Link
+internal fun remoteLinkIcon(link: String): ImageVector = REPOSITORY_HOST_ICONS[link.linkHost()] ?: Icons.Outlined.Link
 
 @Composable
 private fun RemoteTabContent(state: RemoteLinksState) {
@@ -343,7 +330,7 @@ private fun RemoteTabContent(state: RemoteLinksState) {
     val inputCheck = state.inputCheck
     val noLinksMessage = stringResource(R.string.sources_dialog_paste_no_links)
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)) {
         AppDialogTextField(
             value = state.input,
             onValueChange = state::onInputChange,
@@ -479,60 +466,33 @@ private fun LocalTabContent(
     onPickFiles: () -> Unit,
     onRemove: (Uri) -> Unit
 ) {
-    val textColor = dialogTextColor()
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Spaced as the remote tab is, so swiping between the two does not shift what they share. The
+    // remote tab's field keeps room above its outline for its label to rise into, so this page
+    // starts as far down for both to open at one line
+    Column(
+        verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
+        modifier = Modifier.padding(top = OutlinedFieldLabelRoom)
+    ) {
         if (entries.isEmpty()) {
-            // Drop zone
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onPickFiles() },
-                shape = RoundedCornerShape(16.dp),
-                color = Color.Transparent,
-                border = BorderStroke(
-                    1.dp, textColor.copy(alpha = 0.15f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(vertical = 28.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Upload,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = textColor.copy(alpha = 0.4f)
-                    )
-                    Text(
-                        text = stringResource(R.string.sources_dialog_local_files),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = textColor
-                    )
-                    Text(
-                        text = stringResource(R.string.sources_dialog_local_file_tap_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = textColor.copy(alpha = 0.4f)
+            LocalFilesDropZone(onPickFiles = onPickFiles)
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(CompactCardSpacing)) {
+                entries.forEach { entry ->
+                    val check = entry.check
+                    PendingSourceRow(
+                        icon = if (check is LocalFileCheck.Update) Icons.Outlined.Update else Icons.AutoMirrored.Outlined.InsertDriveFile,
+                        title = entry.name,
+                        detail = when (check) {
+                            is LocalFileCheck.Update -> stringResource(R.string.sources_dialog_local_updates, check.title)
+                            LocalFileCheck.Duplicate -> stringResource(R.string.sources_management_already_exists)
+                            LocalFileCheck.NotBundle -> stringResource(R.string.sources_dialog_local_invalid_extension)
+                            // Where it is read from, while it is checked and once it is known to be new
+                            else -> entry.uri.toFilePath().takeIf { it.startsWith("/") }?.substringBeforeLast("/").orEmpty()
+                        },
+                        isError = check == LocalFileCheck.Duplicate || check == LocalFileCheck.NotBundle,
+                        onRemove = { onRemove(entry.uri) }
                     )
                 }
-            }
-        } else {
-            entries.forEach { entry ->
-                val check = entry.check
-                PendingSourceRow(
-                    icon = if (check is LocalFileCheck.Update) Icons.Outlined.Update else Icons.AutoMirrored.Outlined.InsertDriveFile,
-                    title = entry.name,
-                    detail = when (check) {
-                        is LocalFileCheck.Update -> stringResource(R.string.sources_dialog_local_updates, check.title)
-                        LocalFileCheck.Duplicate -> stringResource(R.string.sources_management_already_exists)
-                        LocalFileCheck.NotBundle -> stringResource(R.string.sources_dialog_local_invalid_extension)
-                        // Where it is read from, while it is checked and once it is known to be new
-                        else -> entry.uri.toFilePath().takeIf { it.startsWith("/") }?.substringBeforeLast("/").orEmpty()
-                    },
-                    isError = check == LocalFileCheck.Duplicate || check == LocalFileCheck.NotBundle,
-                    onRemove = { onRemove(entry.uri) }
-                )
             }
             AppDialogOutlinedButton(
                 text = stringResource(R.string.sources_dialog_local_add_more),
@@ -541,6 +501,49 @@ private fun LocalTabContent(
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
+
+/** Room an [OutlinedTextField] with a label keeps above its outline, which Material does not expose. */
+private val OutlinedFieldLabelRoom = 8.dp
+
+/**
+ * What the local tab starts out as: the empty state the file picker shows, framed in dashes, the
+ * usual mark of a place files go, and opening the file picker on a tap.
+ */
+@Composable
+private fun LocalFilesDropZone(onPickFiles: () -> Unit) {
+    val edgeColor = dialogSecondaryTextColor().copy(alpha = 0.5f)
+    // Filled and rounded as the remote tab's hint card is, so the two tabs open alike
+    val shape = RoundedCornerShape(Defaults.SectionCornerRadius)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(cardFill())
+            // Drawn whatever the outline setting, since the dashes are what make it read as a zone
+            .drawBehind {
+                val stroke = dashedGuideStroke()
+                val inset = stroke.width / 2
+                drawRoundRect(
+                    color = edgeColor,
+                    topLeft = Offset(inset, inset),
+                    size = Size(size.width - stroke.width, size.height - stroke.width),
+                    cornerRadius = CornerRadius(Defaults.SectionCornerRadius.toPx() - inset),
+                    style = stroke
+                )
+            }
+            .clickable(role = Role.Button, onClick = onPickFiles)
+    ) {
+        EmptyState(
+            message = stringResource(R.string.sources_dialog_local_files),
+            subtitle = stringResource(R.string.sources_dialog_local_file_tap_hint),
+            icon = Icons.Outlined.UploadFile,
+            // About as tall as the remote tab's hint card, so switching tabs barely moves the dialog
+            contentPadding = PaddingValues(horizontal = Defaults.ContentPadding, vertical = 12.dp),
+            iconSize = 40.dp
+        )
     }
 }
 
@@ -1072,8 +1075,9 @@ private fun String.sanitizePatchChangelogMarkdown(): String =
  * longer offered when the app is patched, and no longer brings it to the home screen. An app
  * another source still brings stays there.
  *
- * Laid out like the hidden apps list: a tap answers for one app, and a long press picks several
- * for the bar to answer at once, so the few wanted out of hundreds take a select all and a few taps.
+ * Laid out like a patch list: a ticked app is brought, a tap answers for one app and the header
+ * answers for everything the search left, so the few wanted out of hundreds take one tap there and
+ * a few on them. Leaving out the apps the source adds later keeps that cut as it grows.
  */
 @Composable
 fun SourceAppsDialog(
@@ -1082,7 +1086,7 @@ fun SourceAppsDialog(
 ) {
     val patchBundleRepository: PatchBundleRepository = koinInject()
     val sourceMuteRepository: SourceMuteRepository = koinInject()
-    val context = LocalContext.current
+    val installedAppRepository: InstalledAppRepository = koinInject()
     val scope = rememberCoroutineScope()
     val itemSpacing = rememberWindowSize().itemSpacing
 
@@ -1090,11 +1094,37 @@ fun SourceAppsDialog(
     val bundleInfo by patchBundleRepository.allBundlesInfoFlow.collectAsStateWithLifecycle(emptyMap())
     val appMetadata by patchBundleRepository.allAppMetadata.collectAsStateWithLifecycle()
     val keptFrom by sourceMuteRepository.mutedSources.collectAsStateWithLifecycle(emptyMap())
+    // Null until read, so the switch never shows the default before the stored answer
+    val unseenNewApps by sourceMuteRepository.unseenNewApps.collectAsStateWithLifecycle(null)
+    val newApps = unseenNewApps?.get(src.uid).orEmpty()
+    // A patched app keeps its home card whichever sources bring it, so leaving it out does not move it
+    val installedApps by remember { installedAppRepository.getAll() }.collectAsStateWithLifecycle(emptyList())
+    val patchedApps = remember(installedApps) { installedApps.mapTo(mutableSetOf()) { it.originalPackageName } }
 
-    val apps = remember(bundleInfo, appMetadata, src.uid) {
-        bundleInfo[src.uid]?.listedApps().orEmpty()
+    val sourceInfo = bundleInfo[src.uid]
+    val listedApps = remember(sourceInfo) { sourceInfo?.listedApps().orEmpty() }
+    // By the rule the home screen applies, so a tick here is a card there
+    val broughtApps = remember(sourceInfo, keptFrom) { sourceInfo?.appsBrought(keptFrom).orEmpty() }
+    // What each app gets from this source, so the choice is not made on a name alone
+    val patchCounts = remember(sourceInfo) {
+        buildMap {
+            sourceInfo?.patches?.forEach { patch ->
+                patch.compatiblePackages.orEmpty()
+                    .mapNotNullTo(mutableSetOf()) { it.packageName }
+                    .forEach { merge(it, 1, Int::plus) }
+            }
+        }
+    }
+    // New apps lead, as they are what the user came back for
+    val apps = remember(listedApps, appMetadata, newApps) {
+        listedApps
             .map { packageName -> packageName to (appMetadata[packageName]?.displayName ?: packageName) }
-            .sortedBy { (_, label) -> label.lowercase(Locale.ROOT) }
+            .sortedWith(
+                compareBy(
+                    { (packageName, _) -> packageName !in newApps },
+                    { (_, label) -> label.lowercase(Locale.ROOT) }
+                )
+            )
     }
 
     val search = rememberSearchFieldState(searchable = apps.size > 1)
@@ -1106,69 +1136,38 @@ fun SourceAppsDialog(
         }
     }
 
-    var isMultiSelectMode by remember { mutableStateOf(false) }
-    val selection = rememberSelectionState<String>()
-    fun exitMultiSelect() {
-        isMultiSelectMode = false
-        selection.clear()
+    // Scoped to the search, so bringing or leaving out all never reaches apps out of view
+    val allFilteredBrought = remember(filtered, broughtApps) {
+        filtered.all { (packageName, _) -> packageName in broughtApps }
     }
 
     // Written in full even if the dialog is gone before it finishes, so a list never lands half
     // applied
-    fun bring(packageNames: Collection<String>, brought: Boolean) {
-        scope.launch {
-            withContext(NonCancellable) {
-                if (brought) sourceMuteRepository.unmuteApps(src.uid, packageNames)
-                else sourceMuteRepository.muteApps(src.uid, packageNames)
-            }
-        }
+    fun persist(write: suspend () -> Unit) {
+        scope.launch { withContext(NonCancellable) { write() } }
+    }
+
+    fun bring(packageNames: Collection<String>, brought: Boolean) = persist {
+        if (brought) sourceMuteRepository.unmuteApps(src.uid, packageNames)
+        else sourceMuteRepository.muteApps(src.uid, packageNames)
+    }
+
+    // The new apps have been seen once the list closes, so the source card stops counting them
+    fun dismiss() {
+        if (newApps.isNotEmpty()) persist { sourceMuteRepository.markNewAppsSeen(src.uid) }
+        onDismissRequest()
     }
 
     AppDialog(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = ::dismiss,
         accentColor = rememberSourceHeaderColor(src),
-        dismissOnClickOutside = !isMultiSelectMode,
         footer = {
             AppDialogOutlinedButton(
                 text = stringResource(R.string.close),
-                onClick = onDismissRequest,
+                onClick = ::dismiss,
                 modifier = Modifier.fillMaxWidth()
             )
         },
-        bottomBar = if (isMultiSelectMode) {
-            {
-                MultiSelectShell(visible = true, onBack = ::exitMultiSelect) {
-                    SelectionActionBar(
-                        selectedCount = selection.size,
-                        // Scoped to the search so "select all" never reaches apps out of view
-                        totalCount = filtered.size,
-                        onSelectAll = { selection.setAll(filtered.map { (packageName, _) -> packageName }) },
-                        onDeselectAll = { selection.clear() },
-                        actions = listOf(
-                            SelectionAction(
-                                icon = Icons.Outlined.VisibilityOff,
-                                label = stringResource(R.string.sources_apps_leave_out),
-                                onClick = context.withToast(stringResource(R.string.sources_apps_leave_out_done)) {
-                                    bring(selection.keys.toList(), brought = false)
-                                    exitMultiSelect()
-                                },
-                                tone = ActionTone.Destructive
-                            ),
-                            SelectionAction(
-                                icon = Icons.Outlined.Visibility,
-                                label = stringResource(R.string.sources_apps_bring_back),
-                                onClick = {
-                                    bring(selection.keys.toList(), brought = true)
-                                    exitMultiSelect()
-                                },
-                                tone = ActionTone.Tertiary
-                            )
-                        ),
-                        onCancel = ::exitMultiSelect
-                    )
-                }
-            }
-        } else null,
         padding = DialogPadding.Compact,
         scrollable = false,
         contentArrangement = Arrangement.Top,
@@ -1185,7 +1184,29 @@ fun SourceAppsDialog(
             search = search,
             searchLabel = stringResource(R.string.home_search_apps),
             // A lone app leaves nothing to search through
-            searchEnabled = apps.size > 1
+            searchEnabled = apps.size > 1,
+            // Answers for everything in view at once, so keeping a few apps out of hundreds is
+            // one tap here and a few on the apps wanted
+            actions = {
+                TitleAction(
+                    icon = if (allFilteredBrought) Icons.Outlined.RemoveDone else Icons.Outlined.DoneAll,
+                    contentDescription = stringResource(
+                        if (allFilteredBrought) R.string.deselect_all else R.string.select_all
+                    ),
+                    // Only the apps that change, so a few left out of hundreds write a few rows
+                    onClick = {
+                        bring(
+                            filtered.mapNotNull { (packageName, _) ->
+                                packageName.takeIf { (it in broughtApps) == allFilteredBrought }
+                            },
+                            brought = !allFilteredBrought
+                        )
+                    },
+                    style = TitleActionStyle.Toggle,
+                    active = allFilteredBrought,
+                    enabled = filtered.isNotEmpty()
+                )
+            }
         )
 
         DialogLazyList(
@@ -1219,6 +1240,23 @@ fun SourceAppsDialog(
                 )
             }
 
+            unseenNewApps?.let { lists ->
+                item(key = "new_apps") {
+                    val bringsNewApps = src.uid !in lists
+                    SettingsSwitchItem(
+                        checked = bringsNewApps,
+                        onToggle = {
+                            persist { sourceMuteRepository.setBringsNewApps(src.uid, !bringsNewApps, listedApps) }
+                        },
+                        icon = Icons.Outlined.AutoAwesome,
+                        title = stringResource(R.string.sources_apps_new_apps),
+                        subtitle = stringResource(R.string.sources_apps_new_apps_description),
+                        showBorder = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
             if (filtered.isEmpty() && search.query.isNotBlank()) {
                 item(key = "empty_state") {
                     EmptyState(
@@ -1230,39 +1268,33 @@ fun SourceAppsDialog(
             }
 
             items(items = filtered, key = { (packageName, _) -> packageName }) { (packageName, label) ->
-                val brought = src.uid !in keptFrom[packageName].orEmpty()
+                val brought = packageName in broughtApps
                 val gradientColors = appMetadata[packageName]?.gradientColors
                     ?: AppCardColorDefaults.defaultGradientColors
 
+                // The card's mark and dimming tell whether the source brings it, so they mean nothing else
                 SelectableCard(
-                    modifier = Modifier
-                        .animatedListItem(this)
-                        // An app left out reads as one this source no longer brings, the
-                        // same way the selection dims what it leaves unpicked
-                        .alpha(if (brought || isMultiSelectMode) 1f else 0.55f),
-                    isSelected = selection.contains(packageName),
-                    isSelectionMode = isMultiSelectMode
+                    modifier = Modifier.animatedListItem(this),
+                    isSelected = brought,
+                    isSelectionMode = true
                 ) {
                     AppCardLayout(
                         gradientColors = gradientColors,
-                        onClick = {
-                            if (isMultiSelectMode) selection.toggle(packageName)
-                            else bring(listOf(packageName), brought = !brought)
-                        },
-                        onLongClick = {
-                            isMultiSelectMode = true
-                            selection.toggle(packageName)
-                        },
+                        onClick = { bring(listOf(packageName), brought = !brought) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        val patchCount = patchCounts[packageName] ?: 0
                         AppCardContent(
                             packageName = packageName,
                             packageInfo = null,
                             displayName = label,
-                            subtitle = stringResource(
-                                if (brought) R.string.sources_apps_brought
-                                else R.string.sources_apps_left_out
-                            ),
+                            subtitle = listOfNotNull(
+                                stringResource(R.string.sources_apps_new).takeIf { packageName in newApps },
+                                pluralStringResource(R.plurals.patch_count, patchCount, patchCount.toString()),
+                                // Left out, it would be gone from the home screen but for its install
+                                stringResource(R.string.sources_apps_stays_patched)
+                                    .takeIf { !brought && packageName in patchedApps }
+                            ).joinToString(" · "),
                             gradientColors = gradientColors
                         )
                     }

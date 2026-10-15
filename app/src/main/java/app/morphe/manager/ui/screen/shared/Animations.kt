@@ -9,9 +9,21 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import app.morphe.manager.ui.screen.shared.Animations.springSlideDownExit
+
+/** [value], or the last one it held once it is gone, so content animating out has something to show. */
+@Composable
+fun <T : Any> rememberLatest(value: T?): T? {
+    val latest = remember { LatestValue<T>() }
+    if (value != null) latest.value = value
+    return value ?: latest.value
+}
+
+private class LatestValue<T : Any> {
+    var value: T? = null
+}
 
 /**
  * Placement and fade animation for a lazy list row, so a list that filters, folds or reorders
@@ -33,8 +45,8 @@ fun Modifier.animatedListItem(itemScope: LazyItemScope): Modifier = with(itemSco
  * animation in the app at once.
  */
 object Animations {
-    // Private helper to avoid repeating tween specifications
-    private fun <T> defaultTween(
+    // Helper to avoid repeating tween specifications, also for motion that has to keep pace with these
+    fun <T> defaultTween(
         duration: Int = Defaults.ANIMATION_DURATION,
         easing: Easing = LinearOutSlowInEasing
     ) = tween<T>(duration, easing = easing)
@@ -86,6 +98,13 @@ object Animations {
     val expandHorizFadeIn = expandHorizontally(defaultTween()) + fadeIn
     val shrinkHorizFadeOut = shrinkHorizontally(defaultTween()) + fadeOut
 
+    // A pill in a row of them, its slot opening and closing while it scales as a whole, rather
+    // than being cut off along one edge as a clipped expand would
+    val pillEnter = fadeIn + scaleIn(defaultTween(), initialScale = 0.6f) +
+            expandHorizontally(defaultTween(), clip = false)
+    val pillExit = fadeOut + scaleOut(defaultTween(), targetScale = 0.6f) +
+            shrinkHorizontally(defaultTween(), clip = false)
+
     const val STAGGER_STEP = 40
     private const val STAGGER_MAX_STEPS = 8
 
@@ -99,14 +118,6 @@ object Animations {
         return fadeIn(tween(Defaults.ANIMATION_DURATION, delay, LinearOutSlowInEasing)) +
             scaleIn(tween(Defaults.ANIMATION_DURATION, delay, LinearOutSlowInEasing), initialScale = 0.8f)
     }
-
-    // Slide + fade + size collapse
-    val slideUpFadeEnter = slideInVertically(defaultTween()) { -it } +
-        fadeIn(defaultTween()) +
-        expandVertically(defaultTween())
-    val slideUpFadeExit = slideOutVertically(defaultTween()) { -it } +
-        fadeOut(defaultTween()) +
-        shrinkVertically(defaultTween())
 
     // Push transitions (Settings screen slides up over home, returns by sliding down)
     val pushEnter = slideInVertically(

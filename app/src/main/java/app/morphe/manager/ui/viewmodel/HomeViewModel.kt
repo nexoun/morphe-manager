@@ -29,6 +29,7 @@ import app.morphe.manager.data.room.apps.installed.InstalledApp
 import app.morphe.manager.domain.apk.*
 import app.morphe.manager.domain.batch.BatchPatchCoordinator
 import app.morphe.manager.domain.batch.BatchRunState
+import app.morphe.manager.domain.batch.SavedBatchQueue
 import app.morphe.manager.domain.batch.mergeNewlyAdded
 import app.morphe.manager.domain.bundles.*
 import app.morphe.manager.domain.installer.InstallerManager
@@ -160,7 +161,8 @@ class HomeViewModel(
         homeAppButtonPrefs = homeAppButtonPrefs,
         appDataResolver = appDataResolver,
         versionCatalog = versionCatalog,
-        localApkSources = localApkSources
+        localApkSources = localApkSources,
+        rootInstaller = rootInstaller
     )
 
     val availablePatches = patchBundleRepository.bundleInfoFlow.map { it.values.sumOf { bundle -> bundle.patches.size } }
@@ -207,11 +209,9 @@ class HomeViewModel(
         showInstalledAppInfoDialog = null
     }
 
-    // Deep link: pending bundle to add via confirmation dialog
-    var deepLinkPendingBundle by mutableStateOf<DeepLinkBundle?>(null)
+    // Deep link: pending source to add via confirmation dialog
+    var deepLinkPendingSource by mutableStateOf<MainViewModel.DeepLinkSource?>(null)
         private set
-
-    data class DeepLinkBundle(val url: String, val name: String?)
 
     // .mpp file opened from file manager: pending confirmation dialog
     var pendingMppUri by mutableStateOf<Uri?>(null)
@@ -411,8 +411,8 @@ class HomeViewModel(
     var snackbarStatus by mutableStateOf(BundleUpdateStatus.Updating)
 
     // Latches when an update cycle was skipped due to metered network; cleared on the next
-    // successful/no-change update. Independent of the transient BundleUpdateSnackbar so the
-    // user still sees a persistent alert after the transient snackbar fades
+    // successful/no-change update. Independent of the transient bundle update alert so the
+    // user still sees a persistent alert after the transient one fades
     var updatesSkippedDueToMetered by mutableStateOf(false)
 
     // Simple mode bundle selection dialog: shown when 2+ bundles have patches for the same app
@@ -774,6 +774,9 @@ class HomeViewModel(
      */
     val batchRun: StateFlow<BatchRunState?> = batchPatchCoordinator.state
 
+    /** The queue waiting to be started, which apps are added to from here. */
+    val savedBatchQueue: StateFlow<SavedBatchQueue?> = batchPatchCoordinator.savedQueue
+
     /**
      * Guard entry-point for all patching flows.
      * Shows MeteredPatchingDialog when on metered network with updates disabled,
@@ -945,13 +948,18 @@ class HomeViewModel(
 
     /**
      * Adds a remote source for each of [urls], downloaded together as one update. With
-     * [chooseApps] the app list of each added source opens once its patches have loaded.
+     * [chooseApps] the app list of each added source opens once its patches have loaded, and with
+     * [onlyApp] each one brings that app alone.
      */
-    fun createRemoteSources(urls: List<String>, chooseApps: Boolean = false) = viewModelScope.launch {
+    fun createRemoteSources(
+        urls: List<String>,
+        chooseApps: Boolean = false,
+        onlyApp: String? = null
+    ) = viewModelScope.launch {
         val added = withContext(NonCancellable) {
-            patchBundleRepository.createRemotes(urls, autoUpdate = true)
+            patchBundleRepository.createRemotes(urls, autoUpdate = true, onlyApp = onlyApp)
         }
-        onSourcesAdded(added, chooseApps)
+        onSourcesAdded(added, chooseApps, onlyApp)
     }
 
     /**
@@ -961,20 +969,32 @@ class HomeViewModel(
      * A source only appears among the loaded ones once its patches are in, which is also what the
      * list is built from. The sources load together, so they are taken as each one arrives rather
      * than in turn, and one that never loads holds back none of the others.
+     *
+     * A source added for [onlyApp] has left out its other apps as it loaded, see
+     * [PatchBundleRepository.createRemotes]. They were never offered, so none of them is new to the
+     * user, and a source that turns out not to patch that app at all is added as any other.
      */
-    private suspend fun onSourcesAdded(uids: List<Int>, chooseApps: Boolean) {
+    private suspend fun onSourcesAdded(uids: List<Int>, chooseApps: Boolean, onlyApp: String? = null) {
         if (uids.isEmpty()) return
 
         val pending = uids.toMutableList()
+        val loadedApps = mutableMapOf<Int, Set<String>>()
         withTimeoutOrNull(NEW_SOURCE_LOAD_TIMEOUT) {
             patchBundleRepository.allBundlesInfoFlow.first { info ->
                 pending.removeAll { uid ->
-                    val loaded = info[uid] ?: return@removeAll false
+                    val listed = info[uid]?.listedApps() ?: return@removeAll false
+                    loadedApps[uid] = listed
                     // Universal patches put no app on the home screen, so there would be nothing to list
-                    if (chooseApps && loaded.listedApps().isNotEmpty()) sourceAppsQueue += uid
+                    if (chooseApps && listed.isNotEmpty()) sourceAppsQueue += uid
                     true
                 }
                 pending.isEmpty()
+            }
+        }
+        if (onlyApp != null) withContext(NonCancellable) {
+            loadedApps.forEach { (uid, listed) ->
+                if (onlyApp in listed) sourceMuteRepository.markNewAppsSeen(uid)
+                else sourceMuteRepository.resetForBundle(uid)
             }
         }
         delay(1.5.seconds)
@@ -1039,24 +1059,35 @@ class HomeViewModel(
     }
 
     /**
-     * Called when the app is opened via a deep link containing a bundle URL.
+     * Called when the app is opened via a deep link containing a source URL.
      * Shows a confirmation dialog instead of adding silently.
      */
-    fun handleDeepLinkAddSource(url: String, name: String?) {
+    fun handleDeepLinkAddSource(source: MainViewModel.DeepLinkSource) {
         dismissOpenDialogs()
-        deepLinkPendingBundle = DeepLinkBundle(url = url, name = name)
+        deepLinkPendingSource = source
     }
 
-    /** User confirmed adding the bundle from the deep link confirmation dialog. */
-    fun confirmDeepLinkBundle(chooseApps: Boolean) {
-        val bundle = deepLinkPendingBundle ?: return
-        deepLinkPendingBundle = null
-        createRemoteSources(listOf(bundle.url), chooseApps)
+    /**
+     * User confirmed adding the source from the deep link confirmation dialog.
+     *
+     * A link for one app from a source that is already here only asks for that app, so it is
+     * brought back to the source rather than the source being refused as a duplicate.
+     */
+    fun confirmDeepLinkSource(chooseApps: Boolean) {
+        val source = deepLinkPendingSource ?: return
+        deepLinkPendingSource = null
+        val packageName = source.packageName
+        val existingUid = patchBundleRepository.existingSourceUid(source.url)
+        if (packageName != null && existingUid != null) {
+            viewModelScope.launch { sourceMuteRepository.unmuteApps(existingUid, listOf(packageName)) }
+        } else {
+            createRemoteSources(listOf(source.url), chooseApps, onlyApp = packageName)
+        }
     }
 
     /** User dismissed the deep link confirmation dialog. */
-    fun dismissDeepLinkBundle() {
-        deepLinkPendingBundle = null
+    fun dismissDeepLinkSource() {
+        deepLinkPendingSource = null
     }
 
     /**

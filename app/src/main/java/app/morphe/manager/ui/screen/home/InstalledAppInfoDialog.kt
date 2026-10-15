@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Launch
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.*
@@ -141,6 +140,7 @@ fun InstalledAppInfoDialog(
     val appUpdates by homeViewModel.apps.appUpdatesAvailable.collectAsStateWithLifecycle()
     val appUpdate = appUpdates?.get(packageName)
     val hasUpdate = appUpdate != null
+    val ignoredAppUpdates by homeViewModel.apps.ignoredAppUpdates.collectAsStateWithLifecycle()
     // What the install itself is in speaks louder than what is pending for it, so a record in one
     // of those states is described by that rather than by the work waiting on it
     val isSettledInstall = !viewModel.isAppDeleted &&
@@ -169,15 +169,21 @@ fun InstalledAppInfoDialog(
     // Both reasons to rebuild are answered by one banner, which then carries the patch button
     // the actions below would otherwise repeat
     val showsRebuildBanner = patchUpdatePending || versionBehind != null
-    // Spent on the version it names, so the banner comes back for whatever the sources support next
+    // Spent on what the banner names, the app version it offers or else the patch release, so the
+    // banner comes back for whatever the sources bring next
     val onIgnoreVersion = versionBehind?.let { status ->
         { homeViewModel.apps.ignoreSupportedVersion(catalogPackageName, status.supportedVersion) }
+    } ?: appUpdate?.takeIf { patchUpdatePending }?.let { update ->
+        { homeViewModel.apps.ignorePatchUpdate(packageName, update) }
     }
     // Offered only while the turned-down version is still the one on offer, since a newer one
     // brings the banner back on its own and leaves nothing to undo
     val onStopIgnoringVersion = ignoredVersion
         ?.takeIf { it == supportedVersion?.version }
         ?.let { { homeViewModel.apps.stopIgnoringSupportedVersion(catalogPackageName) } }
+    // An ignored patch update is only held while its release is the newest, so this lasts as long
+    val onStopIgnoringPatchUpdate = ignoredAppUpdates[packageName]
+        ?.let { { homeViewModel.apps.stopIgnoringPatchUpdate(packageName) } }
 
     // Accent color resolution order: bundle metadata (appIconColor) -> default. Read from every
     // source, a disabled one included, so the app keeps its color with nothing left to patch it.
@@ -276,7 +282,6 @@ fun InstalledAppInfoDialog(
         } else if (hadMountOperation) {
             hadMountOperation = false
             viewModel.refreshCurrentAppState()
-            installedApp?.currentPackageName?.let(homeViewModel.apps::notifyAppStateChanged)
         }
     }
 
@@ -542,7 +547,7 @@ fun InstalledAppInfoDialog(
             val installBadges = buildList {
                 add(installedApp.installType.badge.let { (icon, label) -> icon to stringResource(label) })
                 if (installedApp.isClone) {
-                    add(Icons.Outlined.ContentCopy to stringResource(R.string.clone))
+                    add(AppStateIcons.Clone to stringResource(R.string.clone))
                 }
                 relativeTime?.let { add(Icons.Outlined.Schedule to it) }
             }
@@ -570,12 +575,12 @@ fun InstalledAppInfoDialog(
                     )
                 }
             }
-            // Installs the saved patched build the way the primary installer does, warning first
-            // when that installer and the record differ on mounting
+            // Installs the saved patched build. A Mount build is always mounted, while any other
+            // one warns first when the primary installer is Mount
             val installSavedCopy: () -> Unit = {
                 viewModel.savedApkFile()?.let { savedFile ->
                     val installAction = {
-                        if (viewModel.primaryInstallerIsMount && installedApp.supportsMount) {
+                        if (installedApp.reinstallsByMount(viewModel.primaryInstallerIsMount)) {
                             reinstallSavedMount()
                         } else {
                             // The install result handler records the install type once it lands
@@ -586,7 +591,7 @@ fun InstalledAppInfoDialog(
                             )
                         }
                     }
-                    if (viewModel.primaryInstallerIsMount != (installedApp.installType == InstallType.MOUNT)) {
+                    if (viewModel.primaryInstallerIsMount && installedApp.installType != InstallType.MOUNT) {
                         pendingMountWarningAction.value = installAction
                         showMountWarningDialog.value = true
                     } else {
@@ -726,6 +731,7 @@ fun InstalledAppInfoDialog(
                                 installedApp = installedApp,
                                 supportedVersion = supportedVersion?.version,
                                 onStopIgnoringVersion = onStopIgnoringVersion,
+                                onStopIgnoringPatchUpdate = onStopIgnoringPatchUpdate,
                                 appliedPatches = appliedPatches,
                                 bundlesUsedSummary = bundlesUsedSummary,
                                 appLinksStatus = viewModel.appLinksStatus,
@@ -791,9 +797,12 @@ fun InstalledAppInfoDialog(
                     )
                 }
             } else {
-                // Single-column layout for phones
-                Column(modifier = Modifier.fillMaxSize()) {
-                    infoPanel(Modifier.weight(1f).fillMaxWidth(), 0.dp) {
+                // Single-column layout for phones, held to the width other dialogs stop at
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    infoPanel(Modifier.weight(1f).widthIn(max = Defaults.ContentMaxWidth).fillMaxWidth(), 0.dp) {
                         infoItems()
 
                         item(key = "actions") {
@@ -822,6 +831,7 @@ fun InstalledAppInfoDialog(
                     StaggeredItem(entered = entered.value, index = 3) {
                         closeButton(
                             Modifier
+                                .widthIn(max = Defaults.ContentMaxWidth)
                                 .navigationBarsPadding()
                                 .padding(horizontal = Defaults.ContentPadding)
                                 .padding(vertical = Defaults.ItemSpacing)
@@ -869,7 +879,7 @@ private fun InstalledAppBanners(
             staggerIndex = staggerIndex
         ) {
             WarningBanner(
-                icon = Icons.Outlined.Warning,
+                icon = AppStateIcons.Uninstalled,
                 title = stringResource(R.string.home_app_info_app_deleted_warning),
                 description = stringResource(R.string.home_app_info_app_deleted_description),
                 action = patchAction,
@@ -883,7 +893,7 @@ private fun InstalledAppBanners(
             staggerIndex = staggerIndex
         ) {
             WarningBanner(
-                icon = Icons.Outlined.AutoFixHigh,
+                icon = AppStateIcons.NotPatched,
                 title = stringResource(R.string.home_unpatched_version_installed),
                 // Naming the store is what tells the user how to keep this from happening again
                 description = stringResource(
@@ -930,7 +940,7 @@ private fun InstalledAppBanners(
             Notice(
                 text = stringResource(R.string.home_app_info_install_unverified),
                 tone = SemanticTone.Warning,
-                icon = Icons.AutoMirrored.Outlined.HelpOutline
+                icon = AppStateIcons.Unverified
             )
         }
         // Newer patches and a newer supported app version are both answered by rebuilding the
@@ -941,7 +951,11 @@ private fun InstalledAppBanners(
             staggerIndex = staggerIndex
         ) {
             WarningBanner(
-                icon = Icons.Outlined.Update,
+                icon = if (versionBehind != null) {
+                    AppStateIcons.NewerVersion
+                } else {
+                    AppStateIcons.NewerPatches
+                },
                 title = stringResource(
                     if (versionBehind != null) R.string.home_app_info_app_update_available
                     else R.string.home_app_info_patch_update_available
@@ -1059,7 +1073,7 @@ private fun VersionTransition(
             withStyle(SpanStyle(color = contentColor.copy(alpha = 0.5f))) { append("  $arrow  ") }
             withStyle(SpanStyle(color = contentColor, fontWeight = FontWeight.Medium)) { append(to) }
         },
-        style = MaterialTheme.typography.bodySmall,
+        style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center,
         modifier = modifier.semantics { contentDescription = readOut }
     )
@@ -1119,7 +1133,7 @@ private fun WarningBanner(
                 )
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = headingColor,
                     textAlign = TextAlign.Center
@@ -1129,7 +1143,7 @@ private fun WarningBanner(
             // Description
             Text(
                 text = description,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
@@ -1147,39 +1161,46 @@ private fun WarningBanner(
                 }
             }
 
-            // Action button
-            PrimaryActionButton(
-                action = action,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // Side by side, because the banner's own button is the one meant to stand out and a
-            // column of full-width buttons under it reads as three offers of equal weight
-            val shownActions = rememberLatest(secondaryActions.takeIf { it.isNotEmpty() })
-            AnimatedVisibility(
-                visible = secondaryActions.isNotEmpty(),
-                enter = Animations.expandFadeEnter,
-                exit = Animations.shrinkFadeExit
+            // Buttons sit as far apart as the dialog's own, only the text over them sits closer
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+                // Action button
+                PrimaryActionButton(
+                    action = action,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Side by side, because the banner's own button is the one meant to stand out and a
+                // column of full-width buttons under it reads as three offers of equal weight
+                val shownActions = rememberLatest(secondaryActions.takeIf { it.isNotEmpty() })
+                AnimatedVisibility(
+                    visible = secondaryActions.isNotEmpty(),
+                    enter = Animations.expandFadeEnter,
+                    exit = Animations.shrinkFadeExit
                 ) {
-                    shownActions?.forEach { action ->
-                        // One that joins a row already on screen fades in rather than popping up
-                        key(action.text) {
-                            val appeared = remember { MutableTransitionState(false) }
-                            appeared.targetState = true
-                            AnimatedVisibility(
-                                visibleState = appeared,
-                                enter = Animations.fadeIn,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                TileActionButton(
-                                    action = action,
-                                    horizontal = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
+                    ) {
+                        shownActions?.forEach { action ->
+                            // One that joins a row already on screen fades in rather than
+                            // popping up
+                            key(action.text) {
+                                val appeared = remember { MutableTransitionState(false) }
+                                appeared.targetState = true
+                                AnimatedVisibility(
+                                    visibleState = appeared,
+                                    enter = Animations.fadeIn,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    TileActionButton(
+                                        action = action,
+                                        horizontal = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
                         }
                     }
@@ -1241,6 +1262,7 @@ private fun InfoSection(
     installedApp: InstalledApp,
     supportedVersion: String?,
     onStopIgnoringVersion: (() -> Unit)?,
+    onStopIgnoringPatchUpdate: (() -> Unit)?,
     appliedPatches: Map<Int, Set<String>>?,
     bundlesUsedSummary: String,
     appLinksStatus: AppLinksStatus?,
@@ -1303,23 +1325,12 @@ private fun InfoSection(
             // sources cover can be looked up rather than only met as a warning. A version that
             // was turned down is where the offer is taken back up again
             InfoSlot(supportedVersion) { version ->
-                val supportedVersionLabel = stringResource(R.string.home_app_info_newest_supported_version)
-                if (onStopIgnoringVersion != null) {
-                    InfoRowWithAction(
-                        icon = Icons.Outlined.VisibilityOff,
-                        label = supportedVersionLabel,
-                        value = version.withVersionPrefix(),
-                        onAction = onStopIgnoringVersion,
-                        actionIcon = Icons.Outlined.Visibility,
-                        actionContentDescription = stringResource(R.string.stop_ignoring)
-                    )
-                } else {
-                    InfoRow(
-                        icon = Icons.Outlined.Update,
-                        label = supportedVersionLabel,
-                        value = version.withVersionPrefix()
-                    )
-                }
+                IgnorableInfoRow(
+                    icon = Icons.Outlined.Update,
+                    label = stringResource(R.string.home_app_info_newest_supported_version),
+                    value = version.withVersionPrefix(),
+                    onStopIgnoring = onStopIgnoringVersion
+                )
             }
 
             InfoSlot(apkSize) { size ->
@@ -1347,11 +1358,13 @@ private fun InfoSection(
                 )
             }
 
+            // Where a patch update that was turned down is taken back up again
             InfoSlot(bundlesUsedSummary.takeIf { it.isNotBlank() }) { summary ->
-                InfoRow(
+                IgnorableInfoRow(
                     icon = Icons.Outlined.Source,
                     label = stringResource(R.string.home_app_info_patch_source_used),
-                    value = summary
+                    value = summary,
+                    onStopIgnoring = onStopIgnoringPatchUpdate
                 )
             }
 
@@ -1383,6 +1396,31 @@ private fun InfoSection(
 }
 
 /**
+ * [InfoRow] for something whose offer can be turned down. While it is, [onStopIgnoring] is set and
+ * the row trades [icon] for a crossed out eye and takes the offer back up from its end.
+ */
+@Composable
+private fun IgnorableInfoRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    onStopIgnoring: (() -> Unit)?
+) {
+    if (onStopIgnoring != null) {
+        InfoRowWithAction(
+            icon = Icons.Outlined.VisibilityOff,
+            label = label,
+            value = value,
+            onAction = onStopIgnoring,
+            actionIcon = Icons.Outlined.Visibility,
+            actionContentDescription = stringResource(R.string.stop_ignoring)
+        )
+    } else {
+        InfoRow(icon = icon, label = label, value = value)
+    }
+}
+
+/**
  * A row of the info card shown while [value] is there. Most of what the card lists is read after
  * the dialog opens, so rows slide in as it arrives instead of pushing the card apart.
  */
@@ -1401,18 +1439,6 @@ private fun <T : Any> InfoSlot(value: T?, content: @Composable (T) -> Unit) {
             }
         }
     }
-}
-
-/** [value], or the last one it held once it is gone, so content animating out has something to show. */
-@Composable
-private fun <T : Any> rememberLatest(value: T?): T? {
-    val latest = remember { LatestValue<T>() }
-    if (value != null) latest.value = value
-    return value ?: latest.value
-}
-
-private class LatestValue<T : Any> {
-    var value: T? = null
 }
 
 @Composable
@@ -1547,7 +1573,7 @@ private fun ActionsSection(
 ) {
     Column(
         modifier = modifier.animateContentSize(animationSpec = tween(Defaults.ANIMATION_DURATION)),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
     ) {
         primary?.let { PrimaryActionButton(action = it, modifier = Modifier.fillMaxWidth()) }
 
@@ -1558,7 +1584,7 @@ private fun ActionsSection(
         } else {
             tiles.chunked(2).forEach { rowActions ->
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     rowActions.forEach { action ->

@@ -18,7 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.FolderOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,8 +42,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
-import app.morphe.manager.ui.screen.shared.Defaults.MinTouchTarget
-import app.morphe.manager.ui.screen.shared.Defaults.TallTouchTarget
 import app.morphe.manager.ui.theme.ThemeTraitsDefaults
 import app.morphe.manager.util.isRtl
 import app.morphe.manager.util.readableOn
@@ -52,9 +53,6 @@ object Defaults {
     val CompactCornerRadius = 12.dp
     val SettingsCornerRadius = 14.dp
     val SectionCornerRadius = 18.dp
-
-    /** Gap a surface rising from the bottom edge (a sheet or a panel) keeps from the sides of the screen. */
-    val SheetSideInset = 8.dp
 
     val IconSize = 24.dp
     val IconSizeSmall = 20.dp
@@ -728,6 +726,8 @@ fun InfoStatBox(
  * optional [subtitle] under it, and an [action] that gets the user out of it.
  *
  * @param contentColor Ink of the surface below. Dialogs hand theirs down, a screen passes its own.
+ * @param contentPadding Room around it, smaller where it stands in a card beside other cards.
+ * @param iconSize Size of [icon], smaller along with [contentPadding] to keep the card in step.
  */
 @Composable
 fun EmptyState(
@@ -736,7 +736,9 @@ fun EmptyState(
     icon: ImageVector? = Icons.Outlined.FolderOff,
     subtitle: String? = null,
     action: CardAction? = null,
-    contentColor: Color = dialogSecondaryTextColor()
+    contentColor: Color = dialogSecondaryTextColor(),
+    contentPadding: PaddingValues = PaddingValues(32.dp),
+    iconSize: Dp = 56.dp
 ) {
     Column(
         modifier = modifier
@@ -744,7 +746,7 @@ fun EmptyState(
             // Held to a readable width and centered in whatever room a wide screen gives it
             .wrapContentWidth()
             .widthIn(max = Defaults.ContentMaxWidth)
-            .padding(32.dp),
+            .padding(contentPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
     ) {
@@ -752,7 +754,7 @@ fun EmptyState(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(iconSize),
                 tint = contentColor.copy(alpha = 0.5f)
             )
         }

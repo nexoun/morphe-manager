@@ -179,7 +179,7 @@ class PreferencesManager(
     val trustedApkDownloadHelpers = stringSetPreference("trusted_apk_download_helpers", emptySet())
 
     val lastFilePickerPath = stringPreference("last_file_picker_path", "")
-    val filePickerSortMode = stringPreference("file_picker_sort_mode", "NAME_ASC")
+    val filePickerSortMode = stringPreference("file_picker_sort_mode", "DATE_DESC")
     val filePickerShowHiddenFiles = booleanPreference("file_picker_show_hidden_files", false)
 
     /** Persist the pre-patch APK so it can be reused for repatching without asking the user to reselect it. */
@@ -188,8 +188,8 @@ class PreferencesManager(
     /** Persist the post-patch APK so it can be exported or reinstalled after the patcher screen is closed. */
     val savePatchedApks = booleanPreference("save_patched_apks", true)
 
-    /** Play a distinct notification sound when patching finishes. */
-    val patcherCompletionSound = booleanPreference("patcher_completion_sound", true)
+    /** Play a distinct notification sound when patching finishes. Off until asked for, as a sound can startle. */
+    val patcherCompletionSound = booleanPreference("patcher_completion_sound", false)
 
     /** URI of a user-picked success tone. Empty falls back to the bundled `R.raw.success`. */
     val patcherSuccessSoundUri = stringPreference("patcher_success_sound_uri", "")
@@ -202,6 +202,9 @@ class PreferencesManager(
 
     /** On-disk cache of the remote source blocklist (JSON), so offline launches still enforce it. */
     val blocklistCache = stringPreference("blocklist_cache", "")
+
+    /** Batch queue prepared but not started yet (JSON), empty when there is none. */
+    val batchQueue = stringPreference("batch_queue", "")
 
     /** Tracks whether the user has explicitly toggled the custom file picker preference. */
     val customFilePickerUserConfigured = booleanPreference("custom_file_picker_user_configured", false)
