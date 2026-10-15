@@ -3,12 +3,18 @@ name: Build APK
 on:
   workflow_dispatch:
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
       - name: Checkout
@@ -20,10 +26,15 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+      - name: Cache Gradle
+        uses: burrunan/gradle-cache-action@v3
 
       - name: Build APK
+        env:
+          # Needed to resolve dependencies from GitHub Packages, which
+          # rejects anonymous reads even for public packages
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          _JAVA_OPTIONS: "-Djava.awt.headless=true"
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease --stacktrace
@@ -31,6 +42,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
-          name: morphe-manager-apk
+          archive: false
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
