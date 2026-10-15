@@ -104,7 +104,9 @@ class PatcherWorker(
          */
         val announceCompletion: Boolean = true,
         /** Apps already done and the queue total, null for a single run. */
-        val queuePosition: Pair<Int, Int>? = null
+        val queuePosition: Pair<Int, Int>? = null,
+        /** Explicit split selection from the pre-flight screen; null preserves existing behavior. */
+        val includedSplitNames: Set<String>? = null
     ) {
         val packageName get() = input.packageName
     }
@@ -484,7 +486,8 @@ class PatcherWorker(
                     ::updateProgress,
                     stripNativeLibs,
                     onMergedApkReady,
-                    onRestart
+                    onRestart,
+                    args.includedSplitNames
                 )
             } catch (e: Exception) {
                 val fallbackReason = when {
@@ -513,7 +516,8 @@ class PatcherWorker(
                     ::updateProgress,
                     stripNativeLibs,
                     onMergedApkReady,
-                    onRestart
+                    onRestart,
+                    args.includedSplitNames
                 )
             }
 

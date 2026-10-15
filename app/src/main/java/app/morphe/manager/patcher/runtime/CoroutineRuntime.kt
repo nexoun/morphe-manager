@@ -39,7 +39,8 @@ class CoroutineRuntime(private val context: Context) : Runtime(context) {
         stripUnusedNativeLibs: Boolean,
         onMergedApkReady: (suspend (File) -> Unit)?,
         // This runtime patches in the app's own process and gets one attempt at it
-        onRestart: suspend () -> Unit
+        onRestart: suspend () -> Unit,
+        includedSplitNames: Set<String>?
     ): Int? {
         ResourceMonitor.startPolling(logger)
 
@@ -75,7 +76,8 @@ class CoroutineRuntime(private val context: Context) : Runtime(context) {
                 source = File(inputFile),
                 workspace = File(cacheDir),
                 logger = logger,
-                skipUnneededSplits = stripUnusedNativeLibs,
+                skipUnneededSplits = stripUnusedNativeLibs && includedSplitNames == null,
+                includedModuleNames = includedSplitNames,
                 onEvent = { event ->
                     val message = event.toLocalizedString(context)
                     logger.info(message)
@@ -94,7 +96,7 @@ class CoroutineRuntime(private val context: Context) : Runtime(context) {
                     androidContext = context,
                     logger = logger,
                     input = preparation.file,
-                    stripUnusedNativeLibs = stripUnusedNativeLibs,
+                    stripUnusedNativeLibs = stripUnusedNativeLibs && includedSplitNames == null,
                     onPatchCompleted = onPatchCompleted,
                     onPatchFailed = onPatchFailed,
                     onProgress = onProgress

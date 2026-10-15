@@ -179,6 +179,11 @@ class PatcherViewModel(
     var isPatching: Boolean by mutableStateOf(true)
         private set
 
+    var splitSelectionState by mutableStateOf<SplitSelectionUiState?>(null)
+        private set
+    private var splitSelectionHandled = false
+    private var includedSplitNamesForRun: Set<String>? = null
+
     private val selectedApp = input.selectedApp
     val packageName = selectedApp.packageName
     val version = selectedApp.version
@@ -645,6 +650,27 @@ class PatcherViewModel(
 
     /** The preflight checks themselves. False when one of them put a question on screen. */
     private suspend fun preflight(): Boolean {
+        if (!splitSelectionHandled) {
+            val local = input.selectedApp as? SelectedApp.Local
+            val modules = withContext(Dispatchers.IO) {
+                if (local != null && SplitApkPreparer.isSplitArchive(local.file)) {
+                    runCatching { SplitApkPreparer.inspectModules(local.file) }.getOrDefault(emptyList())
+                } else {
+                    emptyList()
+                }
+            }
+            if (modules.size > 1) {
+                splitSelectionState = SplitSelectionUiState(
+                    sourceName = local!!.file.name,
+                    modules = modules,
+                    selectedNames = modules.filter { it.recommended || it.mandatory }
+                        .mapTo(mutableSetOf()) { it.name }
+                )
+                return false
+            }
+            splitSelectionHandled = true
+        }
+
         val scopedBundles = gatherScopedBundles()
         val sanitizedSelection = sanitizeSelection(appliedSelection, scopedBundles)
         val missing = mutableListOf<String>()
@@ -701,6 +727,40 @@ class PatcherViewModel(
 
         startWorker()
         return true
+    }
+
+
+    fun toggleSplitModule(name: String, selected: Boolean) {
+        val state = splitSelectionState ?: return
+        if (state.modules.firstOrNull { it.name == name }?.mandatory == true && !selected) return
+        splitSelectionState = state.copy(
+            selectedNames = if (selected) state.selectedNames + name else state.selectedNames - name
+        )
+    }
+
+    fun selectRecommendedSplits() {
+        val state = splitSelectionState ?: return
+        splitSelectionState = state.copy(
+            selectedNames = state.modules.filter { it.recommended || it.mandatory }
+                .mapTo(mutableSetOf()) { it.name }
+        )
+    }
+
+    fun selectAllSplits() {
+        val state = splitSelectionState ?: return
+        splitSelectionState = state.copy(selectedNames = state.modules.mapTo(mutableSetOf()) { it.name })
+    }
+
+    fun confirmSplitSelection() {
+        val state = splitSelectionState ?: return
+        includedSplitNamesForRun = state.selectedNames + state.modules.filter { it.mandatory }.map { it.name }
+        splitSelectionHandled = true
+        splitSelectionState = null
+        viewModelScope.launch { runPreflightCheck() }
+    }
+
+    fun cancelSplitSelection() {
+        splitSelectionState = null
     }
 
     private fun startWorker() {
@@ -1038,6 +1098,7 @@ class PatcherViewModel(
             },
             onProgress = patchRun::onProgress,
             patchSources = patchSourcesForLog,
+            includedSplitNames = includedSplitNamesForRun
         )
     }
 
@@ -1265,3 +1326,9 @@ class PatcherViewModel(
         private const val KEY_SUCCESS_SCREEN = "success_screen"
     }
 }
+
+data class SplitSelectionUiState(
+    val sourceName: String,
+    val modules: List<SplitApkPreparer.ModuleInfo>,
+    val selectedNames: Set<String>
+)

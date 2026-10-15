@@ -99,6 +99,15 @@ object SplitApkPreparer {
     // Ordered highest → lowest, matching Android's density fallback direction
     private val DENSITY_ORDER = listOf("xxxhdpi", "xxhdpi", "xhdpi", "hdpi", "tvdpi", "mdpi", "ldpi")
 
+    enum class ModuleKind { BASE, ARCHITECTURE, LOCALE, DENSITY, FEATURE, OTHER }
+
+    data class ModuleInfo(
+        val name: String,
+        val kind: ModuleKind,
+        val recommended: Boolean,
+        val mandatory: Boolean = false
+    )
+
     /** Returns `true` if [file] is a split APK bundle. */
     fun isSplitArchive(file: File?): Boolean {
         if (file == null || !file.exists()) return false
@@ -106,6 +115,41 @@ object SplitApkPreparer {
         if (extension in SUPPORTED_EXTENSIONS) return true
         return hasEmbeddedApkEntries(file)
     }
+
+    /**
+     * Reads the archive index and computes the current device's recommended split selection.
+     * No APK is extracted or merged in this step.
+     */
+    fun inspectModules(source: File): List<ModuleInfo> = runCatching {
+        ZipFile(source).use { zip ->
+            val entries = splitModuleEntries(zip).toList()
+            if (entries.isEmpty()) {
+                emptyList()
+            } else {
+                val skipped = unneededModules(zip, entries)
+                entries.map { entry ->
+                    val name = entry.name
+                    val mandatory = name.equals("base.apk", ignoreCase = true) || isBaseModule(zip, entry)
+                    val qualifiers = splitConfigQualifiers(name)
+                    val kind = when {
+                        mandatory -> ModuleKind.BASE
+                        isAbiSplit(name) -> ModuleKind.ARCHITECTURE
+                        qualifiers.any { isDensityQualifier(it) || it == "nodpi" } -> ModuleKind.DENSITY
+                        qualifiers.any { parseLocaleQualifier(it) != null } -> ModuleKind.LOCALE
+                        name.startsWith("feature_", ignoreCase = true) ||
+                            name.startsWith("split_", ignoreCase = true) -> ModuleKind.FEATURE
+                        else -> ModuleKind.OTHER
+                    }
+                    ModuleInfo(
+                        name = name,
+                        kind = kind,
+                        recommended = mandatory || name !in skipped,
+                        mandatory = mandatory
+                    )
+                }
+            }
+        }
+    }.getOrElse { emptyList() }
 
     /**
      * If [source] is a split APK bundle, extracts all modules into [workspace], merges them into
@@ -120,7 +164,8 @@ object SplitApkPreparer {
         workspace: File,
         logger: Logger = DefaultLogger,
         skipUnneededSplits: Boolean = false,
-        onEvent: ((SplitPreparationEvent) -> Unit)? = null
+        onEvent: ((SplitPreparationEvent) -> Unit)? = null,
+        includedModuleNames: Set<String>? = null
     ): PreparationResult {
         if (!isSplitArchive(source)) {
             return PreparationResult(source, merged = false)
@@ -134,7 +179,14 @@ object SplitApkPreparer {
         return try {
             val sourceSize = source.length()
             logger.info("Preparing split APK bundle from ${source.name} (size=${sourceSize} bytes)")
-            val entries = extractSplitEntries(source, modulesDir, skipUnneededSplits, logger, onEvent)
+            val entries = extractSplitEntries(
+                source = source,
+                targetDir = modulesDir,
+                skipUnneededSplits = skipUnneededSplits,
+                logger = logger,
+                onEvent = onEvent,
+                includedModuleNames = includedModuleNames
+            )
             logger.info("Extracted ${entries.size} split modules: ${entries.joinToString { it.name }}")
             logger.info("Module sizes: ${entries.joinToString { "${it.name}=${it.file.length()} bytes" }}")
             Merger.merge(
@@ -394,7 +446,8 @@ object SplitApkPreparer {
         targetDir: File,
         skipUnneededSplits: Boolean,
         logger: Logger,
-        onEvent: ((SplitPreparationEvent) -> Unit)? = null
+        onEvent: ((SplitPreparationEvent) -> Unit)? = null,
+        includedModuleNames: Set<String>? = null
     ): List<ExtractedModule> =
         runInterruptible(Dispatchers.IO) {
             val extracted = mutableListOf<ExtractedModule>()
@@ -405,7 +458,21 @@ object SplitApkPreparer {
                     throw IOException("Split archive does not contain any APK entries.")
                 }
 
-                val skipped = if (skipUnneededSplits) unneededModules(zip, allEntries) else emptySet()
+                // An explicit selection wins over automatic device filtering. Always keep the
+                // module whose manifest identifies it as the base APK, even with a nonstandard name.
+                val skipped = when {
+                    includedModuleNames != null -> {
+                        val included = includedModuleNames.mapTo(mutableSetOf()) {
+                            it.lowercase(Locale.ROOT).removeSuffix(".apk")
+                        }
+                        allEntries.filterNot { entry ->
+                            val normalizedName = entry.name.lowercase(Locale.ROOT).removeSuffix(".apk")
+                            isBaseModule(zip, entry) || normalizedName in included
+                        }.mapTo(linkedSetOf()) { it.name }
+                    }
+                    skipUnneededSplits -> unneededModules(zip, allEntries)
+                    else -> emptySet()
+                }
                 if (skipped.isNotEmpty()) {
                     logger.info("Skipping ${skipped.size} unneeded split modules: ${skipped.joinToString()}")
                 }

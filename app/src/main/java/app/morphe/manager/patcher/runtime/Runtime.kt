@@ -75,5 +75,7 @@ sealed class Runtime(context: Context) : KoinComponent {
         stripUnusedNativeLibs: Boolean,
         onMergedApkReady: (suspend (File) -> Unit)? = null,
         onRestart: suspend () -> Unit = {},
+        /** Explicit split names; null preserves the existing automatic behaviour. */
+        includedSplitNames: Set<String>? = null,
     ): Int?
 }

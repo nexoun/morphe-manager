@@ -397,6 +397,19 @@ private fun PatcherScreenContent(
         )
     }
 
+    patcherViewModel.splitSelectionState?.let { selection ->
+        SplitSelectionScreen(
+            state = selection,
+            onToggle = patcherViewModel::toggleSplitModule,
+            onRecommended = patcherViewModel::selectRecommendedSplits,
+            onSelectAll = patcherViewModel::selectAllSplits,
+            onConfirm = patcherViewModel::confirmSplitSelection,
+            onCancel = {
+                patcherViewModel.cancelSplitSelection()
+                onBackClick()
+            }
+        )
+    }
     // Patcher version incompatibility pre-flight dialog.
     // Shown when a bundle's Patcher-Version is newer than what the manager ships
     patcherViewModel.incompatiblePatcherVersion?.let { state ->

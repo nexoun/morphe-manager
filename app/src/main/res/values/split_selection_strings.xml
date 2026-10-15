@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="split_selection_title">Choose APK splits</string>
+    <string name="split_selection_source">Source: %1$s</string>
+    <string name="split_selection_description">Select the APK components to include in the merged APK. The recommended selection starts with components suited to this device.</string>
+    <string name="split_selection_recommended">Recommended for device</string>
+    <string name="split_selection_all">Select all</string>
+    <string name="split_selection_count">Selected: %1$d of %2$d</string>
+    <string name="split_selection_required">Required</string>
+    <string name="split_selection_warning">Removing a feature or configuration split may disable app functionality or prevent it from starting. The base APK is always retained.</string>
+    <string name="split_selection_cancel">Cancel</string>
+    <string name="split_selection_continue">Continue</string>
+    <string name="split_selection_kind_base">Base APK</string>
+    <string name="split_selection_kind_architecture">CPU architecture</string>
+    <string name="split_selection_kind_locale">Language</string>
+    <string name="split_selection_kind_density">Screen density</string>
+    <string name="split_selection_kind_feature">Feature module</string>
+    <string name="split_selection_kind_other">Other component</string>
+</resources>

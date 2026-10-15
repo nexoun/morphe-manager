@@ -199,7 +199,8 @@ class ProcessRuntime(
         onProgress: ProgressEventHandler,
         stripUnusedNativeLibs: Boolean,
         onMergedApkReady: (suspend (File) -> Unit)?,
-        onRestart: suspend () -> Unit
+        onRestart: suspend () -> Unit,
+        includedSplitNames: Set<String>?
     ): Int? {
         var memoryMB = coerceMemoryLimit(context, prefs.patcherProcessMemoryLimit.get())
         var retries = 0
@@ -218,7 +219,8 @@ class ProcessRuntime(
                     onPatchCompleted,
                     onPatchFailed,
                     onProgress,
-                    onMergedApkReady
+                    onMergedApkReady,
+                    includedSplitNames
                 )
 
                 return memoryMB.takeIf { retries > 0 }
@@ -276,6 +278,7 @@ class ProcessRuntime(
         onPatchFailed: (String) -> Unit,
         onProgress: ProgressEventHandler,
         onMergedApkReady: (suspend (File) -> Unit)?,
+        includedSplitNames: Set<String>?
     ) = coroutineScope {
         // Get the location of our own Apk
         val managerBaseApk = pm.getPackageInfo(context.packageName)!!.applicationInfo!!.sourceDir
@@ -416,7 +419,8 @@ class ProcessRuntime(
                     )
                 },
                 stripUnusedNativeLibs = stripUnusedNativeLibs,
-                mergedInputFile = mergedInputPath
+                mergedInputFile = mergedInputPath,
+                includedSplitNames = includedSplitNames?.toList()
             )
 
             binder.start(parameters, eventHandler)

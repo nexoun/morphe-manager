@@ -26,7 +26,9 @@ data class Parameters(
     val stripUnusedNativeLibs: Boolean = false,
     // If non-null, PatcherProcess moves the merged mono-APK here after prepareIfNeeded and patches
     // it from this path. ProcessRuntime reads it back so the main process knows the merged file location
-    val mergedInputFile: String? = null
+    val mergedInputFile: String? = null,
+    // Non-null means an explicit split selection was made, including an empty selection.
+    val includedSplitNames: List<String>? = null
 ) : Parcelable
 
 @Parcelize
