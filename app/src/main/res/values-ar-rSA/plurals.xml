@@ -145,7 +145,7 @@
         <item quantity="two">%s تطبيقين جاهزين للتعديل</item>
         <item quantity="few">%s تطبيقات جاهزة للتعديل</item>
         <item quantity="many">%s تطبيق جاهز للتعديل</item>
-        <item quantity="other">%s تطبيقاً جاهزاً للتعديل</item>
+        <item quantity="other">%s تطبيقًا جاهزًا للتعديل</item>
     </plurals>
     <plurals name="home_alerts_snoozed_count">
         <item quantity="zero">%s إشعارات مخفية، انقر لعرضها</item>

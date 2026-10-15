@@ -75,6 +75,10 @@
         <item quantity="one">%s app en cola para parcheo</item>
         <item quantity="other">%s apps en cola para parcheo</item>
     </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s notificación oculta, toca para mostrarla</item>
+        <item quantity="other">%s notificaciones ocultas, toca para mostrarlas</item>
+    </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s aplicación puede volver a parchearse</item>
         <item quantity="other">%s aplicaciones pueden volver a parchearse</item>

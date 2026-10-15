@@ -111,6 +111,12 @@
         <item quantity="few">%s aplikacije čakajo na popravljanje</item>
         <item quantity="other">%s aplikacij čakajo na popravljanje</item>
     </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s skrito obvestilo, tapnite za prikaz</item>
+        <item quantity="two">%s skrita obvestili, tapnite za prikaz</item>
+        <item quantity="few">%s skrita obvestila, tapnite za prikaz</item>
+        <item quantity="other">%s skritih obvestil, kliknite za prikaz</item>
+    </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s aplikacija se lahko ponovno popravi</item>
         <item quantity="two">%s aplikaciji se lahko ponovno popravita</item>

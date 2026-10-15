@@ -75,6 +75,10 @@
         <item quantity="one">पैचिंग के लिए %s ऐप कतार में</item>
         <item quantity="other">पैचिंग के लिए %s ऐप्स कतार में</item>
     </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s छिपी हुई सूचना, इसे दिखाने के लिए टैप करें</item>
+        <item quantity="other">%s छिपी हुई सूचनाएं, उन्हें दिखाने के लिए टैप करें</item>
+    </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s ऐप को फिर से पैच किया जा सकता है</item>
         <item quantity="other">%s ऐप्स को फिर से पैच किए जा सकते हैं</item>
