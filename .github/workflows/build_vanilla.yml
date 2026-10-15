@@ -33,6 +33,7 @@ jobs:
         env:
           # Needed to resolve dependencies from GitHub Packages, which
           # rejects anonymous reads even for public packages
+          GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           _JAVA_OPTIONS: "-Djava.awt.headless=true"
         run: |
