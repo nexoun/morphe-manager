@@ -18,7 +18,6 @@ import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -26,7 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
@@ -40,7 +39,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
@@ -71,19 +69,22 @@ fun SplitSelectionScreen(
     AppDialog(
         onDismissRequest = onCancel,
         title = stringResource(R.string.split_selection_title),
-        description = stringResource(R.string.split_selection_source, state.sourceName),
         footer = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onCancel) {
+                FilledTonalButton(
+                    onClick = onCancel,
+                    shape = RoundedCornerShape(percent = 50)
+                ) {
                     Text(stringResource(R.string.split_selection_cancel))
                 }
                 Button(
                     onClick = onConfirm,
-                    enabled = selectedCount > 0
+                    enabled = selectedCount > 0,
+                    shape = RoundedCornerShape(percent = 50)
                 ) {
                     Text(stringResource(R.string.split_selection_continue))
                 }
@@ -100,6 +101,46 @@ fun SplitSelectionScreen(
                 .fillMaxHeight(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Match the patch picker's app-name/count header with a quiet tonal surface.
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = state.sourceName,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(percent = 50),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.split_selection_count,
+                                selectedCount,
+                                state.modules.size
+                            ),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
             // The patch picker uses a short row of icon-only pill actions. Keep these
             // compact and theme-driven rather than stretching labelled buttons across the dialog.
             Row(
@@ -122,21 +163,6 @@ fun SplitSelectionScreen(
                     iconColor = MaterialTheme.colorScheme.tertiary
                 )
 
-                Text(
-                    text = stringResource(
-                        R.string.split_selection_count,
-                        selectedCount,
-                        state.modules.size
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 2.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.End,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
 
             LazyColumn(
@@ -216,7 +242,6 @@ fun SplitSelectionScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SplitSelectionActionButton(
     onClick: () -> Unit,
