@@ -24,8 +24,8 @@ import app.morphe.manager.ui.viewmodel.StorageManagementViewModel
 import app.morphe.manager.util.formatBytes
 import app.morphe.manager.util.formatUsedFree
 import app.morphe.manager.util.openAppDetailsSettings
-import app.morphe.manager.util.toast
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun StorageManagementDialog(
@@ -33,6 +33,7 @@ fun StorageManagementDialog(
     viewModel: StorageManagementViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
 
     val nothingToClearText = stringResource(R.string.settings_system_storage_nothing_to_clear)
@@ -41,7 +42,7 @@ fun StorageManagementDialog(
     val onCleared: (Long) -> Unit = { freed ->
         val message = if (freed <= 0L) nothingToClearText
         else clearedTemplate.format(context.formatBytes(freed))
-        context.toast(message)
+        messages.show(message)
     }
 
     var apkDialog by remember { mutableStateOf<ApkManagementType?>(null) }
@@ -125,8 +126,8 @@ fun StorageManagementDialog(
 
         DialogScrollColumn(
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(vertical = Defaults.ItemSpacing),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
+            contentPadding = PaddingValues(vertical = Defaults.SpaceMedium),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)
         ) {
             key(histogramNonce) {
                 StorageHistogram(segments = stats.toSegments(), loading = loading)
@@ -140,7 +141,6 @@ fun StorageManagementDialog(
                     description = stringResource(R.string.settings_system_original_apks_description),
                     onClick = { apkDialog = ApkManagementType.ORIGINAL }
                 )
-                SettingsDivider()
                 DataRow(
                     icon = Icons.Outlined.Apps,
                     accentColor = StorageColors.PatchedApks,
@@ -159,7 +159,6 @@ fun StorageManagementDialog(
                     bytes = stats.httpCacheBytes,
                     onClear = { viewModel.clearHttpCache(onCleared) }
                 )
-                SettingsDivider()
                 CacheActionRow(
                     icon = Icons.Outlined.Share,
                     accentColor = StorageColors.InstallerShare,
@@ -168,7 +167,6 @@ fun StorageManagementDialog(
                     bytes = stats.installerShareBytes,
                     onClear = { viewModel.clearInstallerShareCache(onCleared) }
                 )
-                SettingsDivider()
                 CacheActionRow(
                     icon = Icons.Outlined.Build,
                     accentColor = StorageColors.PatcherWorkspace,
@@ -177,7 +175,6 @@ fun StorageManagementDialog(
                     bytes = stats.patcherWorkspaceBytes,
                     onClear = { viewModel.clearPatcherWorkspace(onCleared) }
                 )
-                SettingsDivider()
                 CacheActionRow(
                     icon = Icons.Outlined.HourglassEmpty,
                     accentColor = StorageColors.Temporary,
@@ -186,7 +183,6 @@ fun StorageManagementDialog(
                     bytes = stats.temporaryBytes,
                     onClear = { viewModel.clearTemporary(onCleared) }
                 )
-                SettingsDivider()
                 CacheActionRow(
                     icon = Icons.Outlined.DeleteSweep,
                     accentColor = MaterialTheme.colorScheme.error,
@@ -234,28 +230,30 @@ private fun CacheActionRow(
     bytes: Long,
     onClear: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(Defaults.ContentPadding),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
-    ) {
-        IconTextRow(
-            leadingContent = { ThemedIcon(icon = icon, tint = accentColor) },
-            title = title,
-            description = description
-        )
-        CardActionRow(
-            actions = listOf(
-                CardAction(
-                    icon = Icons.Outlined.DeleteSweep,
-                    label = "${stringResource(R.string.clear)} (${LocalContext.current.formatBytes(bytes)})",
-                    onClick = onClear,
-                    enabled = bytes > 0L,
-                    destructive = true
+    SettingsItemCard(onClick = null) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Defaults.SpaceLarge),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)
+        ) {
+            IconTextRow(
+                leadingContent = { ThemedIcon(icon = icon, tint = accentColor) },
+                title = title,
+                description = description
+            )
+            CardActionRow(
+                actions = listOf(
+                    CardAction(
+                        icon = Icons.Outlined.DeleteSweep,
+                        label = "${stringResource(R.string.clear)} (${LocalContext.current.formatBytes(bytes)})",
+                        onClick = onClear,
+                        enabled = bytes > 0L,
+                        destructive = true
+                    )
                 )
             )
-        )
+        }
     }
 }
 

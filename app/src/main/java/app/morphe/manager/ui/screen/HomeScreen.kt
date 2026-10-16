@@ -10,8 +10,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -28,6 +32,7 @@ import app.morphe.manager.ui.screen.home.*
 import app.morphe.manager.ui.screen.settings.system.InstallerFlowDialogs
 import app.morphe.manager.ui.screen.settings.system.PrePatchInstallerDialog
 import app.morphe.manager.ui.screen.shared.InstallQueueRequest
+import app.morphe.manager.ui.screen.shared.UserMessages
 import app.morphe.manager.ui.screen.shared.rememberInstallQueue
 import app.morphe.manager.ui.theme.SeasonalEvent
 import app.morphe.manager.ui.viewmodel.*
@@ -41,6 +46,7 @@ import kotlin.time.Duration.Companion.milliseconds
 /**
  * Home Screen with 5-section layout.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
     onSettingsClick: () -> Unit,
@@ -58,6 +64,7 @@ fun HomeScreen(
     installViewModel: InstallViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val sourcesLoadingText = stringResource(R.string.home_sources_are_loading)
@@ -190,12 +197,12 @@ fun HomeScreen(
     val batchInProgressText = stringResource(R.string.batch_patch_in_progress)
     val openBatchQueue: (List<BatchTarget>, Boolean) -> Unit = { targets, useMount ->
         when {
-            availablePatches <= 0 -> context.toast(sourcesLoadingText)
+            availablePatches <= 0 -> messages.show(sourcesLoadingText)
             homeViewModel.android11BugActive -> homeViewModel.showAndroid11Dialog = true
             targets.isEmpty() -> Unit
             // A live queue keeps its own selection, so open it instead of swapping the apps
             homeViewModel.batchPatchRunning -> {
-                context.toast(batchInProgressText)
+                messages.show(batchInProgressText)
                 onStartBatchPatch(targets, useMount)
             }
             else -> onStartBatchPatch(targets, useMount)
@@ -273,10 +280,19 @@ fun HomeScreen(
     }
 
     // Main content with pull-to-refresh
+    val pullToRefreshState = rememberPullToRefreshState()
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        state = pullToRefreshState,
+        indicator = {
+            PullToRefreshDefaults.LoadingIndicator(
+                state = pullToRefreshState,
+                isRefreshing = isRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+        }
     ) {
         Column(
             modifier = Modifier
@@ -388,7 +404,7 @@ fun HomeScreen(
                 chromeActions = HomeChromeActions(
                     onOtherAppsClick = {
                         if (availablePatches <= 0) {
-                            context.toast(sourcesLoadingText)
+                            messages.show(sourcesLoadingText)
                         } else {
                             homeViewModel.pendingPackageName = null
                             homeViewModel.pendingAppName = otherAppsText

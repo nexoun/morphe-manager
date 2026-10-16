@@ -101,7 +101,7 @@ fun ImportExportSection(
         }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)) {
         SectionTitle(
             text = stringResource(R.string.settings_system_import_export),
             icon = Icons.Outlined.SwapHoriz
@@ -114,8 +114,6 @@ fun ImportExportSection(
                 title = stringResource(R.string.settings_system_signing_key),
                 subtitle = stringResource(R.string.settings_system_signing_key_description)
             )
-
-            SettingsDivider()
 
             SettingsItem(
                 onClick = { showSettingsDialog = true },
@@ -159,7 +157,7 @@ private fun ImportExportDialog(
             )
         }
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)) {
             content()
         }
     }
@@ -191,11 +189,11 @@ private fun SigningKeyPreview(key: SigningKeyInfo) {
                         copyToClipboard(fingerprintBytes.joinToString(":"))
                     }
                 )
-                .padding(Defaults.ContentPadding),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
+                .padding(Defaults.SpaceLarge),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
+                horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FingerprintBadge(key.sha256)
@@ -234,7 +232,7 @@ private fun SettingsBackupContents(
     selected: Set<SettingsSection>,
     onToggle: (SettingsSection) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)) {
+    SettingsGroup {
         SettingsSection.entries.forEach { section ->
             val isSelected = section in selected
             RadioSelectionCard(

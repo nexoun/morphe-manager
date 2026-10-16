@@ -11,9 +11,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Launch
@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
@@ -165,9 +166,6 @@ fun resultButton(
 @Composable
 private fun ResultStatus.color(): Color =
     if (tone == SemanticTone.Primary) LocalAccent.current ?: tone.accent else tone.accent
-
-/** Height of the action a result leads to, which the buttons beside it match. */
-private val ResultActionHeight = 56.dp
 
 /** Font scale from which the result screen condenses its header to leave room for the rest. */
 private const val CONDENSED_HEADER_FONT_SCALE = 1.3f
@@ -442,26 +440,37 @@ private fun ResultLayout(
                 details()
             }
             if (actions != null) {
-                ResultActionsDock(horizontalPadding = Defaults.ContentPadding, content = actions)
+                // A wider gap than inside either row, so the actions and the bar read as two groups
+                ResultActionsDock(
+                    horizontalPadding = Defaults.SpaceLarge,
+                    bottomPadding = Defaults.SpaceMedium * 2,
+                    content = actions
+                )
             } else {
                 // The bar keeps no gap above itself, so the scrolling content is held off it here
-                Spacer(Modifier.height(Defaults.ItemSpacing))
+                Spacer(Modifier.height(Defaults.SpaceMedium))
             }
-            bottomBar(Defaults.ContentPadding)
+            bottomBar(Defaults.SpaceLarge)
         }
     }
 }
 
 /**
- * The result's actions held under its scrolling content, as wide as the bar below them. The gap
- * under them is the one the bar keeps below its own buttons, so in landscape the two line up.
+ * The result's actions held under its scrolling content, as wide as the bar below them. The
+ * default gap under them is the one the bar keeps below its own buttons, so in landscape the
+ * two line up.
  */
 @Composable
-private fun ResultActionsDock(horizontalPadding: Dp, content: @Composable () -> Unit) {
+private fun ResultActionsDock(
+    horizontalPadding: Dp,
+    bottomPadding: Dp = Defaults.SpaceMedium,
+    content: @Composable () -> Unit
+) {
     Box(
         modifier = Modifier
+            .keepsClearOfMessages()
             .fillMaxWidth()
-            .padding(vertical = Defaults.ItemSpacing),
+            .padding(top = Defaults.SpaceMedium, bottom = bottomPadding),
         contentAlignment = Alignment.TopCenter
     ) {
         Box(
@@ -552,7 +561,7 @@ private fun ResultHeader(status: ResultStatus, packageName: String, windowSize: 
             ResultIcon(status, packageName, iconSize = 64.dp)
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall)
             ) {
                 ResultBadge(status)
                 AppLabel(
@@ -575,7 +584,7 @@ private fun ResultHeader(status: ResultStatus, packageName: String, windowSize: 
         ResultBadge(status)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall)
         ) {
             AppLabel(
                 packageName = packageName,
@@ -606,21 +615,15 @@ private fun ResultBadge(status: ResultStatus) {
 /** The line under the app's name, for the results that have one. */
 @Composable
 private fun ResultSubtitle(status: ResultStatus, textAlign: TextAlign) {
-    AnimatedContent(
-        targetState = status.subtitle,
+    CrossfadeText(
+        text = status.subtitle?.let { stringResource(it) },
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = textAlign,
+        modifier = Modifier.fillMaxWidth(),
         transitionSpec = Animations.fadeCrossfade(500),
         label = "subtitle_animation"
-    ) { subtitle ->
-        if (subtitle != null) {
-            Text(
-                text = stringResource(subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = textAlign,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
+    )
 }
 
 /** The patched app's own icon carrying the [status]'s mark, set off by a [resultPulse]. */
@@ -682,7 +685,7 @@ private fun ResultSummary(version: String?, patchCount: Int, sources: List<Patch
 private fun BackToGameCallout(visible: Boolean, horizontalPadding: Dp) {
     if (!visible) return
 
-    GlassActionCallout(
+    PatcherActionCallout(
         text = stringResource(R.string.patcher_back_to_game_hint, stringResource(R.string.logs)),
         // Logs comes first in a bar of Logs and Home
         slot = 0,
@@ -744,15 +747,19 @@ private fun InstallActions(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
+        verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium)
     ) {
-        // The file buttons take the install button's height, which a large font can raise
-        Row(
-            modifier = Modifier.height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
-        ) {
+        // One connected group, so the file buttons read as part of the install rather than as a
+        // row of their own. They take its height, which a large font can raise
+        ButtonGroupRow {
+            val installInteraction = remember { MutableInteractionSource() }
+            val saveInteraction = remember { MutableInteractionSource() }
+            val shareInteraction = remember { MutableInteractionSource() }
+
             ResultActionButton(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.buttonGroupItem(installInteraction, enabled = !isInstalling),
+                interactionSource = installInteraction,
+                shape = ConnectedShapes.Pill.leading,
                 text = stringResource(
                     when {
                         isInstalling -> if (usingMountInstall) {
@@ -784,16 +791,34 @@ private fun InstallActions(
                     }
                 }
             )
-            ApkFileButton(
-                icon = Icons.Outlined.Save,
-                label = stringResource(R.string.save),
+            // Square as the install button is tall, named by a tooltip since a label would take
+            // the room the install button's own needs
+            PatcherActionButton(
                 onClick = onSave,
-                busy = isSaving
+                icon = Icons.Outlined.Save,
+                text = stringResource(R.string.save),
+                enabled = !isSaving,
+                showProgress = isSaving,
+                shape = ConnectedShapes.Pill.middle,
+                interactionSource = saveInteraction,
+                modifier = Modifier.buttonGroupItem(
+                    saveInteraction,
+                    enabled = !isSaving,
+                    width = PatcherActionHeight,
+                    minWidth = Defaults.MinTouchTarget
+                )
             )
-            ApkFileButton(
+            PatcherActionButton(
+                onClick = onShare,
                 icon = Icons.Outlined.Share,
-                label = stringResource(R.string.share),
-                onClick = onShare
+                text = stringResource(R.string.share),
+                shape = ConnectedShapes.Pill.trailing,
+                interactionSource = shareInteraction,
+                modifier = Modifier.buttonGroupItem(
+                    shareInteraction,
+                    width = PatcherActionHeight,
+                    minWidth = Defaults.MinTouchTarget
+                )
             )
         }
 
@@ -823,7 +848,9 @@ private fun ResultActionButton(
     failed: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    busy: Boolean = false
+    shape: Shape = Defaults.PillShape,
+    busy: Boolean = false,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
 ) {
     val accent = LocalAccent.current ?: MaterialTheme.colorScheme.primary
     val buttonColors = if (failed) {
@@ -838,12 +865,13 @@ private fun ResultActionButton(
     Button(
         onClick = onClick,
         enabled = !busy,
+        interactionSource = interactionSource,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = ResultActionHeight),
-        shape = RoundedCornerShape(Defaults.CardCornerRadius),
+            .heightIn(min = PatcherActionHeight),
+        shape = rememberPressShape(interactionSource, shape, enabled = !busy),
         colors = buttonColors,
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+        contentPadding = PaddingValues(horizontal = Defaults.SpaceExtraLarge, vertical = Defaults.SpaceMedium)
     ) {
         if (busy) {
             CircularProgressIndicator(
@@ -854,44 +882,13 @@ private fun ResultActionButton(
         } else {
             ThemedIcon(icon = icon, tint = LocalContentColor.current)
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(Defaults.SpaceMedium))
         // Follows a mount install through its steps with a fade rather than a jump
         CrossfadeText(
             text = text,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center
-        )
-    }
-}
-
-/**
- * Saving or sharing the patched APK, beside the action it would otherwise crowd. Square as the
- * action is tall, named by a tooltip since a label would take the room the action's own needs.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ApkFileButton(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    busy: Boolean = false
-) {
-    TooltipBox(
-        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-        tooltip = { PlainTooltip { Text(label) } },
-        state = rememberTooltipState(),
-        modifier = Modifier
-            .width(ResultActionHeight)
-            .fillMaxHeight()
-    ) {
-        ActionGlassButton(
-            onClick = onClick,
-            icon = icon,
-            modifier = Modifier.fillMaxSize(),
-            contentDescription = label,
-            enabled = !busy,
-            showProgress = busy
         )
     }
 }

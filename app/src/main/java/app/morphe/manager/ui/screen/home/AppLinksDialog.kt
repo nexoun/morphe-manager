@@ -33,7 +33,6 @@ import app.morphe.manager.domain.links.AppLinksStatus
 import app.morphe.manager.domain.links.RepairCapability
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.util.openAppOpenByDefaultSettings
-import app.morphe.manager.util.toast
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -53,6 +52,7 @@ fun AppLinksDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
     val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val appLinksManager: AppLinksManager = koinInject()
@@ -80,7 +80,7 @@ fun AppLinksDialog(
                             val success = appLinksManager.repairAppLinks(packageName)
                             isRepairing = false
                             onRefresh()
-                            context.toast(
+                            messages.show(
                                 resources.getString(
                                     if (success) R.string.app_links_repair_success
                                     else R.string.app_links_repair_failed
@@ -127,7 +127,7 @@ fun AppLinksDialog(
         }
 
         SurfaceCard(
-            cornerRadius = Defaults.CardCornerRadius,
+            cornerRadius = Defaults.CornerLarge,
             showBorder = true,
             borderColor = appAccentBorder(accentColor),
             color = cardFill(),
@@ -148,8 +148,8 @@ private fun DomainRow(domain: String, isEnabled: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Defaults.ContentPadding, vertical = Defaults.ItemSpacing),
-        horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+            .padding(horizontal = Defaults.SpaceLarge, vertical = Defaults.SpaceMedium),
+        horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -165,11 +165,11 @@ private fun DomainRow(domain: String, isEnabled: Boolean) {
             style = MaterialTheme.typography.labelSmall,
             color = if (isEnabled) SemanticTone.Success.content else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
-                .clip(RoundedCornerShape(Defaults.CompactCornerRadius))
+                .clip(RoundedCornerShape(Defaults.CornerMedium))
                 .background(
                     if (isEnabled) SemanticTone.Success.container else MaterialTheme.colorScheme.surfaceVariant
                 )
-                .padding(horizontal = 8.dp, vertical = 2.dp)
+                .padding(horizontal = Defaults.SpaceSmall, vertical = 2.dp)
         )
     }
 }

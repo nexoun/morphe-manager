@@ -5,7 +5,6 @@
 
 package app.morphe.manager.ui.screen.shared
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -176,7 +175,8 @@ fun AppDialog(
     ) {
         DialogWindowEffect(isDarkTheme)
 
-        Box(
+        // A window of its own, so messages raised while it is open are shown in it
+        MessageHost(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
@@ -276,14 +276,16 @@ fun Overlay(
         ) {
             DialogWindowEffect(isDarkTheme)
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = backgroundAlpha))
-                    .pointerInput(Unit) { detectTapGestures { } },
-                contentAlignment = Alignment.Center,
-                content = content
-            )
+            MessageHost(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = backgroundAlpha))
+                        .pointerInput(Unit) { detectTapGestures { } },
+                    contentAlignment = Alignment.Center,
+                    content = content
+                )
+            }
         }
     }
 }
@@ -324,6 +326,7 @@ fun BoxScope.ContentOverlay(
 /**
  * Main dialog content area.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DialogContent(
     title: String?,
@@ -366,9 +369,9 @@ private fun DialogContent(
     // Box stays full width and its ListScrollbar can sit flush with the dialog edge instead of
     // being pushed inward by the padding
     val horizontalPadding = if (padding == DialogPadding.Compact) {
-        Defaults.ContentPadding
+        Defaults.SpaceLarge
     } else {
-        Defaults.ContentPaddingExpanded
+        Defaults.SpaceExtraExtraLarge
     }
     // The system bars already set the dialog off the screen's edges, so above and below it keeps
     // only the gap its rows keep from each other, whatever it gives its sides. Compact mode zeroes
@@ -376,7 +379,7 @@ private fun DialogContent(
     val topPadding = if (padding == DialogPadding.Compact && title == null) {
         0.dp
     } else {
-        Defaults.ContentPadding
+        Defaults.SpaceLarge
     }
     val footerFolded = hideFooterWhileTyping && WindowInsets.isImeVisible
     // A docked bar takes the bottom edge, so the content stops right above it. A folded footer
@@ -384,7 +387,7 @@ private fun DialogContent(
     val bottomPadding by animateDpAsState(
         targetValue = when {
             bottomBar != null || footerFolded -> 0.dp
-            else -> Defaults.ContentPadding
+            else -> Defaults.SpaceLarge
         },
         animationSpec = tween(Defaults.ANIMATION_DURATION),
         label = "dialog_bottom_padding"
@@ -430,7 +433,7 @@ private fun DialogContent(
                     // text, so a small gap reads as much as the one above the footer
                     val titleAlign =
                         if (titleTrailingContent != null) TextAlign.Start else TextAlign.Center
-                    val titleBottom = if (description != null) 4.dp else Defaults.ContentPaddingSmall
+                    val titleBottom = if (description != null) Defaults.SpaceExtraSmall else Defaults.SpaceSmall
                     if (title != null) {
                         Row(
                             modifier = Modifier
@@ -445,24 +448,18 @@ private fun DialogContent(
                         ) {
                             // Dialogs whose title tracks a state (download, install, result) swap
                             // it in step with their content instead of snapping a new string in
-                            AnimatedContent(
-                                targetState = title,
-                                transitionSpec = Animations.fadeCrossfade(),
+                            CrossfadeText(
+                                text = title,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = titleAlign,
+                                color = textColor,
                                 modifier = Modifier.weight(1f),
                                 label = "dialogTitle"
-                            ) { currentTitle ->
-                                Text(
-                                    text = currentTitle,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = titleAlign,
-                                    color = textColor,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
+                            )
                             if (titleTrailingContent != null) {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+                                    horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
                                     verticalAlignment = Alignment.CenterVertically,
                                     content = titleTrailingContent
                                 )
@@ -477,7 +474,7 @@ private fun DialogContent(
                             .padding(
                                 start = horizontalPadding,
                                 end = horizontalPadding,
-                                bottom = Defaults.ContentPadding
+                                bottom = Defaults.SpaceLarge
                             )
                         if (description is AnnotatedString) {
                             Text(
@@ -541,11 +538,12 @@ private fun DialogContent(
                         ) {
                             Box(
                                 modifier = Modifier
+                                    .keepsClearOfMessages()
                                     .fillMaxWidth()
                                     .padding(
                                         start = horizontalPadding,
                                         end = horizontalPadding,
-                                        top = Defaults.ContentPadding
+                                        top = Defaults.SpaceLarge
                                     )
                             ) {
                                 footer()
@@ -558,6 +556,7 @@ private fun DialogContent(
         if (bottomBar != null) {
             Box(
                 modifier = Modifier
+                    .keepsClearOfMessages()
                     .widthIn(max = Defaults.ContentMaxWidth)
                     .fillMaxWidth()
                     .imePadding()

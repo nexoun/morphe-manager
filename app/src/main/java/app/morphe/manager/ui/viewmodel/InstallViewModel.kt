@@ -24,10 +24,9 @@ import app.morphe.manager.domain.installer.*
 import app.morphe.manager.domain.repository.InstalledAppRepository
 import app.morphe.manager.domain.repository.OriginalApkRepository
 import app.morphe.manager.domain.manager.PreferencesManager
+import app.morphe.manager.ui.screen.shared.UserMessages
 import app.morphe.manager.util.*
 import kotlinx.coroutines.*
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.io.File
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -45,18 +44,19 @@ val MountStage.labelRes: Int
  * Centralized view model for all installation operations, mounting/unmounting and exporting.
  * Handles installation with support for multiple installers (Standard, Shizuku, Root, External).
  */
-class InstallViewModel : ViewModel(), KoinComponent {
-    private val app: Application by inject()
-    private val pm: PM by inject()
-    private val rootInstaller: RootInstaller by inject()
-    private val sessionInstaller: SessionInstaller by inject()
-    private val installerManager: InstallerManager by inject()
-    private val prefs: PreferencesManager by inject()
-    private val appDataResolver: AppDataResolver by inject()
-    private val originalApkRepository: OriginalApkRepository by inject()
-    private val installedAppRepository: InstalledAppRepository by inject()
-    private val applicationScope: AppCoroutineScope by inject()
-
+class InstallViewModel(
+    private val app: Application,
+    private val messages: UserMessages,
+    private val pm: PM,
+    private val rootInstaller: RootInstaller,
+    private val sessionInstaller: SessionInstaller,
+    private val installerManager: InstallerManager,
+    private val prefs: PreferencesManager,
+    private val appDataResolver: AppDataResolver,
+    private val originalApkRepository: OriginalApkRepository,
+    private val installedAppRepository: InstalledAppRepository,
+    private val applicationScope: AppCoroutineScope
+) : ViewModel() {
     /**
      * Current installation state.
      */
@@ -519,7 +519,7 @@ class InstallViewModel : ViewModel(), KoinComponent {
 
         onPersistApp(targetPackageName, InstallType.ROOT_PLAY_STORE)
         handleInstallSuccess(targetPackageName)
-        app.toast(app.getString(R.string.install_app_success))
+        messages.show(R.string.install_app_success)
     }
 
     private suspend fun confirmInstallCompleted(
@@ -568,7 +568,7 @@ class InstallViewModel : ViewModel(), KoinComponent {
                 onPersistApp(targetPackageName, InstallType.SHIZUKU_PLAY_STORE)
                 installedPackageName = targetPackageName
                 installState = InstallState.Installed(targetPackageName)
-                app.toast(app.getString(R.string.install_app_success))
+                messages.show(R.string.install_app_success)
             }
             is InstallResult.Conflict -> handleConflict(targetPackageName, result.message)
             is InstallResult.Failure -> {
@@ -576,7 +576,7 @@ class InstallViewModel : ViewModel(), KoinComponent {
                     Log.w(TAG, "Shizuku Play Store result failed but APK SHA-256 verification succeeded for $targetPackageName")
                     onPersistApp(targetPackageName, InstallType.SHIZUKU_PLAY_STORE)
                     handleInstallSuccess(targetPackageName)
-                    app.toast(app.getString(R.string.install_app_success))
+                    messages.show(R.string.install_app_success)
                 } else if (result.message.isSignatureRejection()) {
                     handleConflict(targetPackageName, result.message)
                 } else {
@@ -617,7 +617,7 @@ class InstallViewModel : ViewModel(), KoinComponent {
                 onPersistApp(targetPackageName, InstallType.SHIZUKU)
                 installedPackageName = targetPackageName
                 installState = InstallState.Installed(targetPackageName)
-                app.toast(app.getString(R.string.install_app_success))
+                messages.show(R.string.install_app_success)
             }
             is InstallResult.Conflict -> handleConflict(targetPackageName, result.message)
             is InstallResult.Failure -> {
@@ -625,7 +625,7 @@ class InstallViewModel : ViewModel(), KoinComponent {
                     Log.w(TAG, "Shizuku result failed but APK SHA-256 verification succeeded for $targetPackageName")
                     onPersistApp(targetPackageName, InstallType.SHIZUKU)
                     handleInstallSuccess(targetPackageName)
-                    app.toast(app.getString(R.string.install_app_success))
+                    messages.show(R.string.install_app_success)
                 } else if (result.message.isSignatureRejection()) {
                     handleConflict(targetPackageName, result.message)
                 } else {
@@ -655,7 +655,7 @@ class InstallViewModel : ViewModel(), KoinComponent {
             // Add FLAG_ACTIVITY_NEW_TASK since we're starting from Application context
             plan.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             app.startActivity(plan.intent)
-            app.toast(app.getString(R.string.installer_external_launched, plan.installerLabel))
+            messages.show(R.string.installer_external_launched, plan.installerLabel)
         } catch (e: ActivityNotFoundException) {
             installerManager.cleanup(plan)
             pendingExternalInstall = null
@@ -828,7 +828,7 @@ class InstallViewModel : ViewModel(), KoinComponent {
 
         installedPackageName = packageName
         installState = InstallState.Installed(packageName)
-        app.toast(app.getString(R.string.installer_external_success, plan.installerLabel))
+        messages.show(R.string.installer_external_success, plan.installerLabel)
         return true
     }
 
@@ -1019,11 +1019,11 @@ class InstallViewModel : ViewModel(), KoinComponent {
 
         try {
             mountOperation = MountOperation.MOUNTING
-            app.toast(app.getString(R.string.mounting_ellipsis))
+            messages.show(R.string.mounting_ellipsis)
             rootInstaller.mount(packageName)
-            app.toast(app.getString(R.string.mounted))
+            messages.show(R.string.mounted)
         } catch (e: Exception) {
-            app.toast(app.getString(R.string.failed_to_mount, e.simpleMessage()))
+            messages.show(R.string.failed_to_mount, e.simpleMessage())
             Log.e(TAG, "Failed to mount", e)
         } finally {
             mountOperation = null
@@ -1036,11 +1036,11 @@ class InstallViewModel : ViewModel(), KoinComponent {
     fun unmount(packageName: String) = viewModelScope.launch {
         try {
             mountOperation = MountOperation.UNMOUNTING
-            app.toast(app.getString(R.string.unmounting_ellipsis))
+            messages.show(R.string.unmounting_ellipsis)
             rootInstaller.unmount(packageName)
-            app.toast(app.getString(R.string.unmounted))
+            messages.show(R.string.unmounted)
         } catch (e: Exception) {
-            app.toast(app.getString(R.string.failed_to_unmount, e.simpleMessage()))
+            messages.show(R.string.failed_to_unmount, e.simpleMessage())
             Log.e(TAG, "Failed to unmount", e)
         } finally {
             mountOperation = null
@@ -1065,16 +1065,16 @@ class InstallViewModel : ViewModel(), KoinComponent {
 
         try {
             mountOperation = MountOperation.UNMOUNTING
-            app.toast(app.getString(R.string.unmounting_ellipsis))
+            messages.show(R.string.unmounting_ellipsis)
             rootInstaller.unmount(packageName)
-            app.toast(app.getString(R.string.unmounted))
+            messages.show(R.string.unmounted)
 
             mountOperation = MountOperation.MOUNTING
-            app.toast(app.getString(R.string.mounting_ellipsis))
+            messages.show(R.string.mounting_ellipsis)
             rootInstaller.mount(packageName)
-            app.toast(app.getString(R.string.mounted))
+            messages.show(R.string.mounted)
         } catch (e: Exception) {
-            app.toast(app.getString(R.string.failed_to_mount, e.simpleMessage()))
+            messages.show(R.string.failed_to_mount, e.simpleMessage())
             Log.e(TAG, "Failed to remount", e)
         } finally {
             mountOperation = null
@@ -1110,7 +1110,7 @@ class InstallViewModel : ViewModel(), KoinComponent {
             InstallerManager.Token.ShizukuPlayStore -> {
                 val opened = installerManager.openShizukuApp()
                 if (!opened) {
-                    app.toast(app.getString(R.string.installer_status_shizuku_not_installed))
+                    messages.show(R.string.installer_status_shizuku_not_installed)
                 }
             }
             else -> {}

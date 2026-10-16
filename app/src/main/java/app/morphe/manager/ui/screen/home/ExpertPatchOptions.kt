@@ -6,7 +6,6 @@
 package app.morphe.manager.ui.screen.home
 
 import android.graphics.drawable.Drawable
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,7 +17,6 @@ import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Restore
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -271,9 +269,9 @@ internal fun PatchOptionsDialog(
                 .weight(1f)
                 .verticalScrollFade(scrollState)
                 .verticalScroll(scrollState)
-                .padding(vertical = Defaults.ItemSpacing),
+                .padding(vertical = Defaults.SpaceMedium),
             // Spaced as the patch list the dialog opens from
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
         ) {
             // What the patch does leads into its options
             if (!patch.description.isNullOrBlank()) {
@@ -564,14 +562,16 @@ private fun ColorOptionWithPresets(
     val isCustom = entries.none { (_, preset) -> preset == value }
 
     OptionCard(heading) {
-        // The choices the app gives everywhere, one card to a named preset, named in the type of
+        // The choices the app gives everywhere, one row to a named preset, named in the type of
         // the option cards they sit in
-        named.forEach { (label, preset) ->
-            RadioSelectionCard(
-                selected = preset == value,
-                onSelect = { onPresetSelect(preset) }
-            ) {
-                CardHeadingText(name = label, description = null, modifier = Modifier.weight(1f))
+        SettingsGroup {
+            named.forEach { (label, preset) ->
+                RadioSelectionCard(
+                    selected = preset == value,
+                    onSelect = { onPresetSelect(preset) }
+                ) {
+                    CardHeadingText(name = label, description = null, modifier = Modifier.weight(1f))
+                }
             }
         }
 
@@ -596,23 +596,17 @@ private fun ColorOptionWithPresets(
                 enter = Animations.expandFadeEnter,
                 exit = Animations.shrinkFadeExit
             ) {
-                AnimatedContent(
-                    targetState = swatchName ?: lastSwatchName,
-                    transitionSpec = Animations.fadeCrossfade(),
+                CrossfadeText(
+                    text = swatchName ?: lastSwatchName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = dialogTextColor(),
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = Defaults.ItemSpacing),
+                        .padding(top = Defaults.SpaceMedium),
                     label = "colorOptionSwatchName"
-                ) { name ->
-                    Text(
-                        text = name,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = dialogTextColor(),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                )
             }
         }
     }
@@ -784,7 +778,7 @@ private fun ListStringInputOption(
     OptionCard(heading) {
         if (value.isNotEmpty()) {
             // A chip already keeps a touch target's height around it, which spaces the lines
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)) {
                 value.forEachIndexed { index, item ->
                     AppInputChip(
                         label = item,
@@ -795,7 +789,7 @@ private fun ListStringInputOption(
         }
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+            horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
             AppDialogTextField(

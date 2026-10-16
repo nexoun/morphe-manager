@@ -27,7 +27,7 @@ import app.morphe.manager.ui.theme.ThemeTraitsDefaults
 import kotlinx.coroutines.launch
 
 /** Shape of a surface rising from the bottom edge, a sheet or a panel docked there: Material's sheet corners. */
-val SheetShape: Shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+val SheetShape: Shape = RoundedCornerShape(topStart = Defaults.CornerExtraLarge, topEnd = Defaults.CornerExtraLarge)
 
 /**
  * A [ModalBottomSheet] that never overlaps the status bar.
@@ -101,13 +101,16 @@ fun AppBottomSheet(
                 // On the dialogs' background the sheet has nothing but an edge of its own to tell
                 // it from the screen dimmed behind it. The sheet's modifier sits outside the offset
                 // it slides in by, so the edge goes around the content, handle included
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .sheetBorder(CardBorder.neutral, shape)
-                ) {
-                    if (showDragHandle) SheetDragHandle(contentColor, onDismissRequest)
-                    content()
+                // A window of its own, so messages raised while it is open are shown in it
+                MessageHost(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .sheetBorder(CardBorder.neutral, shape)
+                    ) {
+                        if (showDragHandle) SheetDragHandle(contentColor, onDismissRequest)
+                        content()
+                    }
                 }
             }
         }
@@ -123,7 +126,7 @@ private fun SheetDragHandle(contentColor: Color, onDismissRequest: () -> Unit) {
             // The sheet already stops short of the status bar, which leaves this at zero there. It
             // keeps the handle clear of the bar wherever the insets reach this far
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(top = 12.dp, bottom = 4.dp)
+            .padding(top = Defaults.SpaceMedium, bottom = Defaults.SpaceExtraSmall)
             .semantics {
                 contentDescription = closeLabel
                 dismiss { onDismissRequest(); true }
@@ -134,7 +137,7 @@ private fun SheetDragHandle(contentColor: Color, onDismissRequest: () -> Unit) {
             modifier = Modifier
                 .width(32.dp)
                 .height(4.dp),
-            shape = RoundedCornerShape(50),
+            shape = Defaults.PillShape,
             color = contentColor.copy(alpha = 0.4f)
         ) {}
     }

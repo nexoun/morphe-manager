@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.dp
  *                        since a screen reader offers to turn a checkbox off and a radio never.
  * @param accentColor     Color of what the card stands for, or the surrounding one, see [LocalAccent].
  *                        A selected card wears it on its edge and indicator, never as a fill.
+ * @param shape           The card's place in a lazy segmented list, see [ConnectedShapes.inColumn].
  */
 @Composable
 fun RadioSelectionCard(
@@ -61,6 +63,7 @@ fun RadioSelectionCard(
     leadingContent: (@Composable () -> Unit)? = null,
     footerContent: (@Composable () -> Unit)? = null,
     accentColor: Color? = LocalAccent.current,
+    shape: CornerBasedShape? = null,
     content: @Composable RowScope.() -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -90,6 +93,7 @@ fun RadioSelectionCard(
         showBorder = true,
         borderColor = borderColor,
         color = fill,
+        shape = shape,
         modifier = modifier.semantics {
             this.role = role
             this.selected = selected
@@ -103,8 +107,8 @@ fun RadioSelectionCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(Defaults.ContentPadding),
-                    horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
+                        .padding(Defaults.SpaceLarge),
+                    horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (leadingContent != null) {
@@ -127,8 +131,8 @@ fun RadioSelectionCard(
                                 .background(footerColor)
                                 .animateContentSize()
                                 .padding(
-                                    horizontal = Defaults.ContentPadding,
-                                    vertical = Defaults.ContentPaddingSmall
+                                    horizontal = Defaults.SpaceLarge,
+                                    vertical = Defaults.SpaceSmall
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
@@ -195,7 +199,7 @@ fun SelectionLeadingBox(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     size: Dp = 28.dp,
-    cornerRadius: Dp = 8.dp,
+    cornerRadius: Dp = Defaults.CornerSmall,
     content: @Composable BoxScope.() -> Unit
 ) {
     val borderColor by animateColorAsState(
@@ -275,16 +279,16 @@ fun SelectionCheckRow(
             // Pressed on a rounded plate around the box and its label, as a menu item is, rather
             // than across the whole width the row is centered in
             .wrapContentWidth(Alignment.CenterHorizontally)
-            .clip(RoundedCornerShape(Defaults.CompactCornerRadius))
+            .clip(RoundedCornerShape(Defaults.CornerMedium))
             .toggleable(
                 value = checked,
                 enabled = enabled,
                 role = Role.Checkbox,
                 onValueChange = onCheckedChange
             )
-            .padding(Defaults.ContentPaddingSmall),
+            .padding(Defaults.SpaceSmall),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing, Alignment.CenterHorizontally)
+        horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium, Alignment.CenterHorizontally)
     ) {
         SelectionCheckIndicator(
             state = if (checked) ToggleableState.On else ToggleableState.Off,

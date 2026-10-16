@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,7 +40,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
@@ -60,6 +58,7 @@ import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.viewmodel.HomeAppSourceGroup
 import app.morphe.manager.util.KnownApps
 import kotlinx.coroutines.delay
+import org.koin.compose.koinInject
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -433,7 +432,7 @@ private fun AdaptiveContent(
                     )
                     Spacer(modifier = Modifier.height(itemSpacing))
                 } else if (isGroupedAppView) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(Defaults.SpaceExtraLarge))
                 }
 
                 // Section 3: Scrollable app buttons
@@ -469,9 +468,8 @@ private fun HomeFooterControls(
                 onClick = onOtherAppsClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = Defaults.SpaceMedium),
                 role = Role.Button,
-                pressScale = true,
                 hapticFeedback = true
             )
         }
@@ -482,7 +480,7 @@ private fun HomeFooterControls(
  * Section 2: Greeting message.
  */
 @Composable
-fun GreetingSection(
+private fun GreetingSection(
     message: String?,
     modifier: Modifier = Modifier,
     onRefresh: (() -> Unit)? = null
@@ -499,21 +497,17 @@ fun GreetingSection(
         ),
         contentAlignment = Alignment.Center
     ) {
-        AnimatedContent(
-            targetState = message,
+        CrossfadeText(
+            text = message,
             transitionSpec = Animations.slideUpContentTransitionSpec,
+            // A step below a headline, so a long phrase still fits in a line or two
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
             label = "greeting_transition"
-        ) { targetMessage ->
-            Text(
-                text = targetMessage,
-                // Sized as a dialog title, so the home screen heads itself the way its dialogs do
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        )
     }
 }
 
@@ -628,8 +622,8 @@ internal fun MainAppsSection(
     val placeholderGradients = remember { KnownApps.DEFAULT_SHIMMER_GRADIENTS }
 
     // Resolved outside the LazyColumn DSL scope since @Composable calls aren't allowed there
-    val context = LocalContext.current
-    val categoryActionsUnavailableToast = stringResource(R.string.home_category_actions_unavailable)
+    val messages = koinInject<UserMessages>()
+    val categoryActionsUnavailableMessage = stringResource(R.string.home_category_actions_unavailable)
 
     HomeAppsSectionDialogs(
         state = state,
@@ -1094,7 +1088,7 @@ internal fun MainAppsSection(
                                 requestFocus = searchState.visible,
                                 modifier = Modifier
                                     .padding(horizontal = horizontalPadding)
-                                    .padding(bottom = 8.dp)
+                                    .padding(bottom = Defaults.SpaceSmall)
                             )
                         }
 
@@ -1168,8 +1162,8 @@ internal fun MainAppsSection(
                                         appActions = appActions,
                                         categoryReorderableState = categoryReorderableState,
                                         haptic = haptic,
-                                        context = context,
-                                        categoryActionsUnavailableToast = categoryActionsUnavailableToast
+                                        messages = messages,
+                                        categoryActionsUnavailableMessage = categoryActionsUnavailableMessage
                                     )
 
                                     filterEmptyState(
@@ -1285,8 +1279,7 @@ internal fun MainAppsSection(
                             ListScrollbar(
                                 listState = listState,
                                 alphabetTargets = scrollTargets,
-                                alphabetMode = alphabetScrollMode,
-                                extraBottomPadding = footerBarOverlap
+                                alphabetMode = alphabetScrollMode
                             )
 
                             // Lifted clear of whichever bar covers the bottom of the list

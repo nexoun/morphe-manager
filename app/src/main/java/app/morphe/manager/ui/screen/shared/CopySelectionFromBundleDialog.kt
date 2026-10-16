@@ -7,6 +7,7 @@ package app.morphe.manager.ui.screen.shared
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -17,7 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 
 /**
@@ -93,7 +93,7 @@ fun CopySelectionFromBundleDialog(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
         ) {
             // Headed by the app the selection lands on, with the source it lands in, while the
             // question the list below answers sits right above it
@@ -103,7 +103,7 @@ fun CopySelectionFromBundleDialog(
                 },
                 title = target.appDisplayName,
                 subtitle = target.bundleName,
-                modifier = Modifier.padding(bottom = Defaults.ContentPaddingSmall)
+                modifier = Modifier.padding(bottom = Defaults.SpaceSmall)
             )
             Text(
                 text = stringResource(R.string.copy_selection_title),
@@ -146,7 +146,7 @@ private fun ColumnScope.CandidateList(
         modifier = Modifier
             .fillMaxWidth()
             .weight(1f, fill = false),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+        verticalArrangement = Arrangement.spacedBy(SegmentGap)
     ) {
         items(
             items = candidates.withIndex().toList(),
@@ -156,6 +156,7 @@ private fun ColumnScope.CandidateList(
                 candidate = candidate,
                 selected = index == selectedIndex,
                 onSelect = { onSelect(index) },
+                shape = ConnectedShapes.Card.inColumn(index, candidates.size),
                 // Named after the source it copies from, so the card wears that source's color once picked
                 accentColor = sourcesByUid[candidate.bundleUid]?.let { rememberBundleAccent(it) }
             )
@@ -168,6 +169,7 @@ private fun CandidateRow(
     candidate: CopySelectionCandidate,
     selected: Boolean,
     onSelect: () -> Unit,
+    shape: CornerBasedShape,
     accentColor: Color? = null
 ) {
     val enabled = candidate.applicableCount > 0
@@ -182,15 +184,16 @@ private fun CandidateRow(
         onSelect = onSelect,
         enabled = enabled,
         contentDescription = "${candidate.packageDisplayName}, ${candidate.bundleName}, $availableText",
-        accentColor = accentColor
+        accentColor = accentColor,
+        shape = shape
     ) {
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+                horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
             ) {
                 Text(
                     text = candidate.bundleName,

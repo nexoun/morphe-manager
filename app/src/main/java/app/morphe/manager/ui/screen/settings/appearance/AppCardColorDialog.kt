@@ -31,12 +31,10 @@ import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.theme.LocalAppCardColorResolver
 import app.morphe.manager.util.*
 
-private const val MODE_COLUMNS = 2
-
 private val MODE_OPTIONS = listOf(
     AppCardColorMode.DEFAULT to Icons.Outlined.Apps,
     AppCardColorMode.ACCENT to Icons.Outlined.ColorLens,
-    AppCardColorMode.GRADIENT to Icons.Outlined.Palette,
+    AppCardColorMode.GRADIENT to Icons.Outlined.Gradient,
     AppCardColorMode.SOLID to Icons.Outlined.Circle
 )
 
@@ -136,7 +134,7 @@ fun AppCardColorDialog(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)
         ) {
             AppCardColorPreview(
                 colors = previewColors,
@@ -144,17 +142,16 @@ fun AppCardColorDialog(
                 appColors = previewAppColors
             )
 
-            OptionGrid(
-                items = MODE_OPTIONS,
-                columns = MODE_COLUMNS,
-                spacing = Defaults.ItemSpacing
-            ) { (optionMode, icon), itemModifier ->
+            OptionGroup(items = MODE_OPTIONS) { (optionMode, icon), shape, interactionSource, itemModifier ->
                 ModernIconOptionCard(
                     selected = draftMode == optionMode,
                     onClick = { draftMode = optionMode },
                     icon = icon,
                     label = stringResource(optionMode.labelResId),
-                    modifier = itemModifier
+                    modifier = itemModifier,
+                    compact = true,
+                    shape = shape,
+                    interactionSource = interactionSource
                 )
             }
 
@@ -179,7 +176,6 @@ fun AppCardColorDialog(
                             followsBundle = AppCardColorDefaults.isBundleColor(draftStartColorHex),
                             onClick = { editingStop = AppCardColorStop.START }
                         )
-                        SettingsDivider()
                         AppCardColorItem(
                             title = stringResource(R.string.settings_appearance_app_card_colors_middle),
                             stop = AppCardColorStop.MIDDLE,
@@ -187,7 +183,6 @@ fun AppCardColorDialog(
                             followsBundle = AppCardColorDefaults.isBundleColor(draftMiddleColorHex),
                             onClick = { editingStop = AppCardColorStop.MIDDLE }
                         )
-                        SettingsDivider()
                         AppCardColorItem(
                             title = stringResource(R.string.settings_appearance_app_card_colors_end),
                             stop = AppCardColorStop.END,
@@ -260,12 +255,12 @@ fun AppCardColorMiniPreview(
     Box(
         modifier = modifier
             .size(width = width, height = height)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(Defaults.CornerSmall))
             .appCardColorPreviewBackground(colors)
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(Defaults.CornerSmall)
             )
     )
 }

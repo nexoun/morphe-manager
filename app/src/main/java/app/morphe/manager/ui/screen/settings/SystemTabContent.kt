@@ -64,7 +64,7 @@ fun SystemTabContent(
             .verticalScrollFade(scrollState)
             .verticalScroll(scrollState)
             .padding(settingsTabPadding()),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
+        verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)
     ) {
         // Installers
         SectionTitle(
@@ -113,13 +113,11 @@ fun SystemTabContent(
             icon = Icons.Outlined.Info
         )
 
-        SettingsGroup {
-            AboutSection(
-                onAboutClick = onAboutClick,
-                onChangelogClick = onChangelogClick,
-                onExportDebugLogs = onExportDebugLogs,
-                onStartTour = onStartTour
-            )
-        }
+        AboutSection(
+            onAboutClick = onAboutClick,
+            onChangelogClick = onChangelogClick,
+            onExportDebugLogs = onExportDebugLogs,
+            onStartTour = onStartTour
+        )
     }
 }

@@ -124,7 +124,6 @@ class PatcherProcess(private val context: Context) : IPatcherProcess.Stub() {
 
                 Session(
                     cacheDir = parameters.cacheDir,
-                    frameworkDir = parameters.frameworkDir,
                     androidContext = context,
                     logger = logger,
                     input = input,

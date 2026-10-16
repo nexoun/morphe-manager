@@ -74,11 +74,10 @@ fun ApkDownloadHelpersDialog(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
         ) {
             SettingsGroup {
                 helpers.forEachIndexed { index, helper ->
-                    if (index > 0) SettingsDivider()
 
                     val trusted = helper.packageName in trustedPackages
                     val info = details[helper.packageName]

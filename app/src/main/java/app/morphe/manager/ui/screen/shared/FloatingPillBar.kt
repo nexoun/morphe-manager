@@ -39,7 +39,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -85,6 +84,7 @@ fun FloatingPillBar(
     // than being cut off, while staying visible around the pill
     Box(
         modifier = modifier
+            .keepsClearOfMessages()
             .fillMaxWidth()
             .background(Brush.verticalGradient(0f to Color.Transparent, 1f to background.copy(alpha = 0.9f)))
             .navigationBarsPadding(),
@@ -95,7 +95,7 @@ fun FloatingPillBar(
                 .widthIn(max = Defaults.ContentMaxWidth)
                 .fillMaxWidth()
                 .padding(horizontal = horizontalPadding)
-                .padding(bottom = Defaults.ItemSpacing),
+                .padding(bottom = Defaults.SpaceMedium),
             // No spacing of its own: a trailing action brings its gap along, see [AnimatedRowPill]
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -151,7 +151,7 @@ fun FloatingPillBar(
  * A row's own spacing would hold that gap until the pill is gone and then drop it at once.
  */
 @Composable
-fun AnimatedRowPill(visible: Boolean, gap: Dp = FloatingPillSpacing, content: @Composable () -> Unit) {
+fun AnimatedRowPill(visible: Boolean, gap: Dp = Defaults.SpaceSmall, content: @Composable () -> Unit) {
     AnimatedVisibility(visible = visible, enter = Animations.pillEnter, exit = Animations.pillExit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Spacer(modifier = Modifier.width(gap))
@@ -182,9 +182,8 @@ fun FloatingPillRoundAction(
             onClick = rememberHapticClick(onClick),
             modifier = Modifier
                 .size(FloatingPillHeight)
-                .pressScale(interactionSource, label = "floating_round_press_scale")
                 .semantics { contentDescription = label },
-            shape = CircleShape,
+            shape = rememberPressShape(interactionSource, CircleShape),
             color = floatingPillColor(colors.container),
             contentColor = colors.content,
             border = CardBorder.of(colors.border),
@@ -296,19 +295,21 @@ private fun RowScope.PillAction(
     val contentColor by animateColorAsState(colors.content, label = "pill_action_content")
     val description = item.contentDescription ?: item.label
     val interactionSource = remember { MutableInteractionSource() }
+    val shape = rememberPressShape(interactionSource, CircleShape)
 
     val action: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(PillActionHeight)
-                .pressScale(interactionSource, label = "pill_action_press_scale")
-                .clip(CircleShape)
+                // Without a fill of its own the slot has no outline to round, so it sinks instead
+                .pressScale(interactionSource, enabled = !filled, label = "pill_action_press_scale")
+                .clip(shape)
                 .then(
                     if (filled) {
                         Modifier
-                            .background(colors.container, CircleShape)
-                            .border(SelectedEdgeWidth, colors.border, CircleShape)
+                            .background(colors.container, shape)
+                            .border(SelectedEdgeWidth, colors.border, shape)
                     } else {
                         Modifier
                     }
@@ -371,16 +372,11 @@ private fun RowScope.PillAction(
  */
 @Composable
 private fun pillLabelWeights(labels: List<String>, width: Dp): List<Float>? {
-    val measurer = rememberTextMeasurer()
-    val style = MaterialTheme.typography.labelSmall
-    val density = LocalDensity.current
+    val labelWidths = rememberLabelWidths(labels, MaterialTheme.typography.labelSmall)
 
-    return remember(labels, width, style, density, measurer) {
+    return remember(labelWidths, width) {
         if (labels.isEmpty()) return@remember null
-        val needed = labels.map { label ->
-            with(density) { measurer.measure(label, style, maxLines = 1).size.width.toDp() } +
-                PillLabelPadding * 2
-        }
+        val needed = labelWidths.map { it + PillLabelPadding * 2 }
         val total = needed.fold(0.dp) { sum, it -> sum + it }
         when {
             needed.all { it <= width / labels.size } -> labels.map { 1f }
@@ -392,7 +388,6 @@ private fun pillLabelWeights(labels: List<String>, width: Dp): List<Float>? {
 }
 
 private val FloatingPillHeight = 64.dp
-private val FloatingPillSpacing = 6.dp
 private val FloatingPillElevation = 3.dp
 private val PillActionHeight = 52.dp
 private val PillInset = 6.dp

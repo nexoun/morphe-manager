@@ -48,6 +48,7 @@ import app.morphe.manager.ui.viewmodel.*
 import app.morphe.manager.util.*
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 /** Settings tabs for bottom navigation. */
 private enum class SettingsTab(
@@ -75,6 +76,7 @@ fun SettingsScreen(
     onStartTour: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
     val coroutineScope = rememberCoroutineScope()
     val isTV = remember { context.isAndroidTv() }
     val wrongCredentialsText = stringResource(R.string.settings_system_import_keystore_wrong_credentials)
@@ -232,7 +234,7 @@ fun SettingsScreen(
                 coroutineScope.launch {
                     val result = importExportViewModel.tryKeystoreImport(alias, pass, storePass, format)
                     if (!result) {
-                        context.toast(wrongCredentialsText)
+                        messages.show(wrongCredentialsText)
                     }
                 }
             }
@@ -384,7 +386,7 @@ fun SettingsScreen(
                 ) { navigationHeight ->
                     // The tabs scroll on under the floating navigation, and end clear of it
                     CompositionLocalProvider(
-                        LocalSettingsTabBottomPadding provides navigationHeight + Defaults.ItemSpacing
+                        LocalSettingsTabBottomPadding provides navigationHeight + Defaults.SpaceMedium
                     ) {
                         HorizontalPager(
                             state = pagerState,
@@ -392,7 +394,7 @@ fun SettingsScreen(
                         ) { page -> TabContent(SettingsTab.entries[page]) }
                     }
 
-                    ListScrollbar(scrollState = currentScrollState, extraBottomPadding = navigationHeight)
+                    ListScrollbar(scrollState = currentScrollState)
                 }
             }
         }
@@ -415,15 +417,15 @@ private fun LandscapeNavPanel(
         modifier = modifier
             .width(220.dp)
             .fillMaxHeight()
-            .padding(horizontal = 12.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
+            .padding(horizontal = Defaults.SpaceMedium, vertical = Defaults.SpaceExtraLarge),
+        verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium)
     ) {
         // Centered in the room above Back, so the two never close up on a short screen
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing, Alignment.CenterVertically)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium, Alignment.CenterVertically)
         ) {
             SettingsTab.entries.forEach { tab ->
                 val positionedModifier = when (tab) {
@@ -440,7 +442,6 @@ private fun LandscapeNavPanel(
                     selected = currentTab == tab,
                     onClick = { onTabSelected(tab) },
                     modifier = Modifier.fillMaxWidth().then(positionedModifier),
-                    pressScale = true,
                     hapticFeedback = true,
                     showLabel = true
                 )

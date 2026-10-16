@@ -196,6 +196,7 @@ private fun PatchedApksContent(
     installViewModel: InstallViewModel
 ) {
     val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
     val scope = rememberCoroutineScope()
     val saveApkSuccessText = stringResource(R.string.save_apk_success)
     val patchedApksDeletedText = stringResource(R.string.settings_system_patched_apks_deleted)
@@ -355,13 +356,13 @@ private fun PatchedApksContent(
                 }.onFailure { error ->
                     skipped++
                     if (error !is UninstallCancelledException) {
-                        context.toast(uninstallFailTemplate.format(error.simpleMessage()))
+                        messages.show(uninstallFailTemplate.format(error.simpleMessage()))
                     }
                 }
             }
-            if (unverified > 0) context.toast(uninstallUnverifiedText)
+            if (unverified > 0) messages.show(uninstallUnverifiedText)
             context.batchActionSummary(R.plurals.batch_uninstall_summary, completed, skipped)
-                ?.let { context.toast(it) }
+                ?.let { messages.show(it) }
         }
     }
 
@@ -380,7 +381,7 @@ private fun PatchedApksContent(
                         }
                     }
                 }
-                context.toast(saveApkSuccessText)
+                messages.show(saveApkSuccessText)
             }
         }
     }
@@ -434,14 +435,14 @@ private fun PatchedApksContent(
                 val appsToDelete = selectedItems.mapNotNull { appByKey[it.selectionKey] }
                 scope.launch {
                     val deleted = repository.deleteSavedPatchedApks(appsToDelete)
-                    context.toast(if (deleted) apksDeletedAllText else apksDeleteFailedText)
+                    messages.show(if (deleted) apksDeletedAllText else apksDeleteFailedText)
                 }
             },
             onDeleteAllConfirm = {
                 val appsToDelete = apkItems.map { it.installedApp }
                 scope.launch {
                     val deleted = repository.deleteSavedPatchedApks(appsToDelete)
-                    context.toast(if (deleted) apksDeletedAllText else apksDeleteFailedText)
+                    messages.show(if (deleted) apksDeletedAllText else apksDeleteFailedText)
                 }
             }
         ),
@@ -459,7 +460,7 @@ private fun PatchedApksContent(
             onConfirm = {
                 scope.launch {
                     val deleted = repository.deleteSavedPatchedApk(app)
-                    context.toast(if (deleted) patchedApksDeletedText else apksDeleteFailedText)
+                    messages.show(if (deleted) patchedApksDeletedText else apksDeleteFailedText)
                     pendingDelete = null
                 }
             }
@@ -473,6 +474,7 @@ private fun OriginalApksContent(
     installViewModel: InstallViewModel
 ) {
     val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
     val scope = rememberCoroutineScope()
     val saveApkSuccessText = stringResource(R.string.save_apk_success)
     val originalApksDeletedText = stringResource(R.string.settings_system_original_apks_deleted)
@@ -587,12 +589,12 @@ private fun OriginalApksContent(
                 }.onFailure { error ->
                     skipped++
                     if (error !is UninstallCancelledException) {
-                        context.toast(uninstallFailTemplate.format(error.simpleMessage()))
+                        messages.show(uninstallFailTemplate.format(error.simpleMessage()))
                     }
                 }
             }
             context.batchActionSummary(R.plurals.batch_uninstall_summary, completed, skipped)
-                ?.let { context.toast(it) }
+                ?.let { messages.show(it) }
         }
     }
 
@@ -611,7 +613,7 @@ private fun OriginalApksContent(
                         }
                     }
                 }
-                context.toast(saveApkSuccessText)
+                messages.show(saveApkSuccessText)
             }
         }
     }
@@ -656,14 +658,14 @@ private fun OriginalApksContent(
                 val apksToDelete = selectedItems.mapNotNull { apkByKey[it.selectionKey] }
                 scope.launch {
                     apksToDelete.forEach { repository.delete(it) }
-                    context.toast(apksDeletedAllText)
+                    messages.show(apksDeletedAllText)
                 }
             },
             onDeleteAllConfirm = {
                 val apksToDelete = entries.map { it.apk }
                 scope.launch {
                     apksToDelete.forEach { repository.delete(it) }
-                    context.toast(apksDeletedAllText)
+                    messages.show(apksDeletedAllText)
                 }
             }
         ),
@@ -682,7 +684,7 @@ private fun OriginalApksContent(
             onConfirm = {
                 scope.launch {
                     repository.delete(apk)
-                    context.toast(originalApksDeletedText)
+                    messages.show(originalApksDeletedText)
                     pendingDelete = null
                 }
             }
@@ -699,6 +701,7 @@ private fun ApkManagementDialogContent(
     retentionToggle: RetentionToggle? = null
 ) {
     val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
     val scope = rememberCoroutineScope()
     var showDeleteAllConfirmation by remember { mutableStateOf(false) }
     var showDeleteSelectedConfirmation by remember { mutableStateOf(false) }
@@ -753,7 +756,7 @@ private fun ApkManagementDialogContent(
                 val exported = withContext(Dispatchers.IO) {
                     ZipUtils.zip(context, uri, itemsToExport.mapNotNull { it.file })
                 }
-                context.toast(if (exported) zipExportSuccessText else zipExportFailedText)
+                messages.show(if (exported) zipExportSuccessText else zipExportFailedText)
                 if (exported) selection.clear()
             } finally {
                 isExporting = false
@@ -898,7 +901,7 @@ private fun ApkManagementDialogContent(
 
         DialogLazyList(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium),
             pinnedFirstRow = true
         ) {
             // Kept while the field is closed, so its share of the spacing makes the gap under
@@ -912,13 +915,13 @@ private fun ApkManagementDialogContent(
                     // Opaque, so rows scrolled under the gap stay hidden
                     modifier = Modifier
                         .background(MaterialTheme.colorScheme.background)
-                        .padding(top = Defaults.ItemSpacing)
+                        .padding(top = Defaults.SpaceMedium)
                 )
             }
 
             if (retentionToggle != null) {
                 item(key = "retention") {
-                    Column(verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium)) {
                         SettingsSwitchItem(
                             checked = retentionToggle.checked,
                             onToggle = { retentionToggle.onCheckedChange(!retentionToggle.checked) },
@@ -1066,8 +1069,8 @@ private fun ApkItemCard(
                                 onToggleSelection()
                             }
                         )
-                        .padding(Defaults.ContentPadding),
-                    horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
+                        .padding(Defaults.SpaceLarge),
+                    horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // App icon
@@ -1081,7 +1084,7 @@ private fun ApkItemCard(
                     // App info
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall)
                     ) {
                         Text(
                             text = data.displayName,
@@ -1126,8 +1129,8 @@ private fun ApkItemCard(
                         // Action buttons
                         ActionPillRow(
                             modifier = Modifier.padding(
-                                horizontal = Defaults.ContentPadding,
-                                vertical = Defaults.ItemSpacing
+                                horizontal = Defaults.SpaceLarge,
+                                vertical = Defaults.SpaceMedium
                             )
                         ) {
                             if (onShare != null) {

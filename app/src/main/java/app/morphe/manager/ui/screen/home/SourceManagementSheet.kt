@@ -270,13 +270,14 @@ fun BundleManagementSheet(
 
     AppBottomSheet(onDismissRequest = onDismissRequest) {
         val context = LocalContext.current
+        val messages = koinInject<UserMessages>()
         val uriHandler = LocalUriHandler.current
         val failedToOpenUrlText = stringResource(R.string.sources_management_failed_to_open_url)
         fun openUrl(url: String) {
             try {
                 uriHandler.openUri(url)
             } catch (_: Exception) {
-                context.toast(failedToOpenUrlText)
+                messages.show(failedToOpenUrlText)
             }
         }
 
@@ -310,7 +311,7 @@ fun BundleManagementSheet(
                 ) {
                     AnimatedVisibility(visible = isSearchable) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+                            horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TitleAction(
@@ -360,7 +361,7 @@ fun BundleManagementSheet(
                         style = TitleActionStyle.Neutral
                     )
                 }
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Column(modifier = Modifier.padding(horizontal = Defaults.SpaceLarge)) {
                     AnimatedVisibility(
                         visible = search.visible,
                         enter = Animations.expandFadeEnter,
@@ -373,11 +374,11 @@ fun BundleManagementSheet(
                             requestFocus = true,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp)
+                                .padding(bottom = Defaults.SpaceSmall)
                         )
                     }
 
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(Defaults.SpaceSmall))
                 }
 
                 // Bundle cards. The navigation bar inset goes on the box, so the scrollbar and the
@@ -394,11 +395,11 @@ fun BundleManagementSheet(
                             .fillMaxWidth()
                             .onGloballyPositioned { coords -> listWindowY = coords.boundsInWindow().top }
                             .verticalScrollFade(listState),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium),
                         contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            bottom = 16.dp
+                            start = Defaults.SpaceLarge,
+                            end = Defaults.SpaceLarge,
+                            bottom = Defaults.SpaceLarge
                         )
                     ) {
                         if (isLoadingSources) {
@@ -769,7 +770,7 @@ private fun BundleManagementCard(
         modifier = modifier
             .fillMaxWidth()
             .graphicsLayer { scaleX = scale; scaleY = scale },
-        shape = RoundedCornerShape(Defaults.CardCornerRadius),
+        shape = RoundedCornerShape(Defaults.CornerLarge),
         tonalElevation = if (isDragging) 8.dp else 3.dp,
         color = animatedColor,
         border = CardBorder.of(animatedBorderColor)
@@ -800,7 +801,7 @@ private fun BundleManagementCard(
                 }
             }
 
-            Column(modifier = Modifier.padding(Defaults.ContentPadding)) {
+            Column(modifier = Modifier.padding(Defaults.SpaceLarge)) {
                 // Click target only on the header so expanded children stay independently focusable for screen readers
                 BundleCardHeader(
                     bundle = bundle,
@@ -843,7 +844,7 @@ private fun BundleManagementCard(
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+                        verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
                     ) {
                         Column {
                             // Blocked source banner (shown when the source appears on the remote blocklist)
@@ -943,10 +944,12 @@ private fun BundleManagementCard(
                             }
                         }
 
-                        // Repository actions, as wide as the four pill action bar below
+                        // Repository actions, as wide as the four pill action bar below. Connected,
+                        // since every one of them leads out to the repository
                         if (bundle is RemotePatchBundle) {
                             ActionPillRow(
-                                modifier = Modifier.padding(vertical = 4.dp),
+                                modifier = Modifier.padding(vertical = Defaults.SpaceExtraSmall),
+                                spacing = ButtonGroupDefaults.ConnectedSpaceBetween,
                                 stretchLabelsTo = 4
                             ) {
                                 ActionPillButton(
@@ -954,7 +957,8 @@ private fun BundleManagementCard(
                                     icon = Icons.AutoMirrored.Outlined.OpenInNew,
                                     contentDescription = openInBrowser + " " + bundle.displayTitle,
                                     label = openInBrowser,
-                                    tooltip = openInBrowser
+                                    tooltip = openInBrowser,
+                                    shape = ConnectedShapes.Pill.leading
                                 )
 
                                 if (actions.onShare != null) {
@@ -962,7 +966,8 @@ private fun BundleManagementCard(
                                         onClick = actions.onShare,
                                         icon = Icons.Outlined.Share,
                                         contentDescription = share + " " + bundle.displayTitle,
-                                        tooltip = share
+                                        tooltip = share,
+                                        shape = ConnectedShapes.Pill.middle
                                     )
                                 }
 
@@ -970,7 +975,8 @@ private fun BundleManagementCard(
                                     onClick = actions.onReportIssue,
                                     icon = Icons.Outlined.BugReport,
                                     contentDescription = reportIssue + " " + bundle.displayTitle,
-                                    tooltip = reportIssue
+                                    tooltip = reportIssue,
+                                    shape = ConnectedShapes.Pill.trailing
                                 )
                             }
                         }
@@ -1016,7 +1022,7 @@ private fun BundleManagementCard(
                         }
 
                         // Action bar
-                        ActionPillRow(modifier = Modifier.padding(top = 4.dp)) {
+                        ActionPillRow(modifier = Modifier.padding(top = Defaults.SpaceExtraSmall)) {
                             if (!forceExpanded) {
                                 val disableEnableVerb = stringResource(
                                     if (bundle.enabled) R.string.disable else R.string.enable
@@ -1114,9 +1120,9 @@ private fun BundleCardHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = Defaults.SpaceSmall),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium)
     ) {
         // Bundle icon with GitHub avatar support
         BundleIcon(
@@ -1147,7 +1153,7 @@ private fun BundleCardHeader(
                 Row(
                     modifier = Modifier.graphicsLayer { alpha = detailsAlpha },
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall)
                 ) {
                     if (versionText != null) {
                         Text(
@@ -1188,8 +1194,8 @@ private fun BundleCardHeader(
             // The badges inside animate their own entry and exit, so animating the row on top of
             // that only buys a second measure pass per frame while the list is scrolling
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall),
+                verticalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall),
             ) {
                 // What the search found inside the source leads, being the reason the card is on
                 // screen at all. It swaps in without an animation of its own, since the list

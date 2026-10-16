@@ -11,6 +11,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -19,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
@@ -37,8 +37,6 @@ import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.patcher.patch.appColorFor
 import app.morphe.manager.ui.model.HomeAppItem
 import app.morphe.manager.ui.screen.shared.*
-import app.morphe.manager.util.toast
-import app.morphe.manager.util.withToast
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.util.Locale
@@ -199,7 +197,7 @@ internal fun HiddenAppsDialog(
     onShowPatches: (HomeAppItem) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
     val itemSpacing = rememberWindowSize().itemSpacing
     val isMultiSelectMode = remember { mutableStateOf(false) }
     val selectedPackages = rememberSelectionState<String>()
@@ -248,7 +246,7 @@ internal fun HiddenAppsDialog(
                             SelectionAction(
                                 icon = Icons.Outlined.Visibility,
                                 label = stringResource(R.string.unhide),
-                                onClick = context.withToast(stringResource(R.string.unhide_done)) {
+                                onClick = messages.confirming(stringResource(R.string.unhide_done)) {
                                     onUnhideMultiple(selectedPackages.keys.toSet())
                                     isMultiSelectMode.value = false
                                     selectedPackages.clear()
@@ -313,7 +311,7 @@ internal fun HiddenAppsDialog(
                                     endConfig = rememberPatchesSwipeAction(item.packageName),
                                     modifier = Modifier
                                         .matchParentSize()
-                                        .clip(RoundedCornerShape(24.dp))
+                                        .clip(RoundedCornerShape(Defaults.CornerLargeIncreased))
                                 )
                             }
                         ) {
@@ -366,7 +364,7 @@ fun AppPatchSourcesDialog(
     val sourceMuteRepository: SourceMuteRepository = koinInject()
     val scope = rememberCoroutineScope()
 
-    val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
     val lastSourceMessage = stringResource(R.string.home_app_patch_sources_last)
 
     val bundleInfo by patchBundleRepository.bundleInfoFlow.collectAsStateWithLifecycle(emptyMap())
@@ -420,9 +418,9 @@ fun AppPatchSourcesDialog(
     ) {
         DialogLazyList(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+            verticalArrangement = Arrangement.spacedBy(SegmentGap)
         ) {
-            items(items = rows, key = { (uid, _, _) -> uid }) { (uid, title, counts) ->
+            itemsIndexed(items = rows, key = { _, (uid, _, _) -> uid }) { index, (uid, title, counts) ->
                 val (held, reaches) = counts
                 // Worn the way the source list wears it, so a source reads as the same one there
                 val accentColor = sourcesByUid[uid]?.let { rememberBundleAccent(it) }
@@ -443,7 +441,7 @@ fun AppPatchSourcesDialog(
                                 // Refusing to leave an app with nothing to patch from would
                                 // otherwise read as a checkbox that does nothing
                                 if (reached.isEmpty()) {
-                                    context.toast(lastSourceMessage)
+                                    messages.show(lastSourceMessage)
                                 }
                                 reached.forEach { sourceMuteRepository.mute(it, uid) }
                             } else {
@@ -454,6 +452,7 @@ fun AppPatchSourcesDialog(
                     role = Role.Checkbox,
                     leadingContent = { SelectionCheckIndicator(state, accentColor = accentColor) },
                     accentColor = accentColor,
+                    shape = ConnectedShapes.Card.inColumn(index, rows.size),
                     modifier = Modifier
                         .fillMaxWidth()
                         .animatedListItem(this)

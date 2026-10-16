@@ -29,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -50,10 +49,10 @@ import app.morphe.manager.util.PatchSelection
 import app.morphe.manager.util.PatchSelectionUtils.hasCustomizedOptions
 import app.morphe.manager.util.PatchSelectionUtils.hasMissingRequiredOptions
 import app.morphe.manager.util.PatchSelectionUtils.hasUniversalToEnable
-import app.morphe.manager.util.toast
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
+import org.koin.compose.koinInject
 
 /**
  * The patches the expert-mode dialog chooses from: every source's patches with whether each is
@@ -119,7 +118,7 @@ fun ExpertModeDialog(
     val selectedPatchForOptions = remember { mutableStateOf<Pair<Int, PatchInfo>?>(null) }
     val search = rememberSearchFieldState()
     val showMultipleSourcesWarning = remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
 
     // Both markers are keyed by bundle, since the same patch name can come from several sources
     // with values of its own. Recomputed whenever the selected patches or options change
@@ -250,7 +249,7 @@ fun ExpertModeDialog(
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
         ) {
             Column {
                 // Headed by the app, as its other dialogs are. A lone source takes the subtitle's
@@ -318,7 +317,7 @@ fun ExpertModeDialog(
                     value = search.query,
                     onValueChange = { search.query = it },
                     label = searchLabel,
-                    modifier = Modifier.padding(top = Defaults.ContentPaddingSmall)
+                    modifier = Modifier.padding(top = Defaults.SpaceSmall)
                 )
             }
 
@@ -501,7 +500,7 @@ fun ExpertModeDialog(
                         lockStateOf = lockStateOf,
                         holdsUniversalPatches = holdsUniversalPatches,
                         onExpandUniversal = { patchSections.setExpanded(it, UNIVERSAL_GROUP_KEY, true) },
-                        modifier = Modifier.padding(vertical = Defaults.ContentPaddingSmall)
+                        modifier = Modifier.padding(vertical = Defaults.SpaceSmall)
                     )
 
                     // Pager
@@ -583,9 +582,9 @@ fun ExpertModeDialog(
                 patchActions.onResetOptions(bundleUid, patch.name)
             },
             onDismiss = {
-                // Show a toast if the patch still has unfilled required options
+                // Tell the user if the patch still has unfilled required options
                 if (patch.name in patchesWithMissingRequired[bundleUid].orEmpty()) {
-                    context.toast(missingOptionsMessage)
+                    messages.show(missingOptionsMessage)
                 }
                 selectedPatchForOptions.value = null
             }
@@ -631,7 +630,7 @@ private fun SourceTab(
         // which leaves the first flush with the list below. Nothing above or below, so the row
         // keeps the same spacing to the header and the controls as a lone source's layout does
         modifier = Modifier
-            .padding(end = Defaults.ContentPaddingSmall)
+            .padding(end = Defaults.SpaceSmall)
             .clip(Defaults.PillShape)
             .background(fill),
         selectedContentColor = if (accent != null) {
@@ -642,9 +641,9 @@ private fun SourceTab(
         unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = Defaults.ItemSpacing, vertical = Defaults.ContentPaddingSmall),
+            modifier = Modifier.padding(horizontal = Defaults.SpaceMedium, vertical = Defaults.SpaceSmall),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+            horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
         ) {
             if (source != null) {
                 BundleIcon(bundle = source, modifier = Modifier.size(24.dp), enabled = source.enabled)
@@ -809,7 +808,7 @@ private fun BundlePatchList(
         modifier = modifier
             .fillMaxSize()
             .verticalScrollFade(listState),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+        verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
     ) {
         if (bundle.uid in markers.prereleaseNotices) prereleaseNotice()
 
