@@ -6,27 +6,23 @@
 package app.morphe.manager.ui.screen.settings.system
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.MergeType
-import androidx.compose.material.icons.outlined.SwapVert
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.repository.PatchBundleRepository.ImportMode
 import app.morphe.manager.ui.screen.shared.*
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 /**
- * Two-choice dialog that asks the user how an import should be applied:
- * Replace overwrites current state to match the backup exactly (destructive);
- * Merge only adds missing entries and preserves everything that already exists.
+ * Two-choice dialog that asks the user how an import should be applied: Merge only adds missing
+ * entries and preserves everything that already exists, Replace overwrites current state to match
+ * the backup exactly. The safe one leads, and the one that removes things says so with its icon.
  */
 @Composable
-fun ImportModeDialog(
+fun DialogHostScope.ImportModeDialog(
     @StringRes titleRes: Int,
     @StringRes descriptionRes: Int,
     onDismiss: () -> Unit,
@@ -37,6 +33,7 @@ fun ImportModeDialog(
         title = stringResource(titleRes),
         description = stringResource(descriptionRes),
         footer = {
+            // The rows are the choice, so the way out is kept outlined
             AppDialogOutlinedButton(
                 text = stringResource(android.R.string.cancel),
                 onClick = onDismiss,
@@ -44,56 +41,21 @@ fun ImportModeDialog(
             )
         }
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
-            ImportModeOption(
-                icon = Icons.Outlined.SwapVert,
-                title = stringResource(R.string.import_mode_replace_title),
-                description = stringResource(R.string.import_mode_replace_description),
-                isDestructive = true,
-                onClick = { onSelect(ImportMode.Replace) }
-            )
-
-            ImportModeOption(
-                icon = Icons.AutoMirrored.Outlined.MergeType,
+        SettingsGroup {
+            SettingsItem(
+                onClick = { onSelect(ImportMode.Merge) },
                 title = stringResource(R.string.import_mode_merge_title),
-                description = stringResource(R.string.import_mode_merge_description),
-                isDestructive = false,
-                onClick = { onSelect(ImportMode.Merge) }
+                subtitle = stringResource(R.string.import_mode_merge_description),
+                icon = MaterialSymbols.Rounded.Merge_type.autoMirrored
+            )
+            SettingsItem(
+                onClick = { onSelect(ImportMode.Replace) },
+                title = stringResource(R.string.import_mode_replace_title),
+                subtitle = stringResource(R.string.import_mode_replace_description),
+                leadingContent = {
+                    ThemedIcon(icon = MaterialSymbols.Rounded.Swap_vert, tint = dialogDestructiveColor())
+                }
             )
         }
-    }
-}
-
-@Composable
-private fun ImportModeOption(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    isDestructive: Boolean,
-    onClick: () -> Unit,
-) {
-    val destructiveColor = dialogDestructiveColor()
-
-    SettingsItemCard(
-        onClick = onClick,
-        showBorder = true,
-        borderColor = if (isDestructive) {
-            destructiveColor.copy(alpha = 0.5f)
-        } else {
-            MaterialTheme.colorScheme.outlineVariant
-        }
-    ) {
-        IconTextRow(
-            modifier = Modifier.padding(Defaults.ContentPadding),
-            leadingContent = {
-                ThemedIcon(
-                    icon = icon,
-                    tint = if (isDestructive) destructiveColor else MaterialTheme.colorScheme.primary
-                )
-            },
-            title = title,
-            description = description,
-            titleColor = if (isDestructive) destructiveColor else MaterialTheme.colorScheme.onSurface
-        )
     }
 }

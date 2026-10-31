@@ -24,15 +24,23 @@ interface ComplexParameter<T : Parcelable>
 @Serializable
 object HomeScreen
 
+/** A part of the settings as a page of its own, named by its [app.morphe.manager.ui.screen.settings.SettingsSubpage]. */
 @Serializable
-object Settings
+data class SettingsDetail(val subpage: String)
+
+/** The patch selections expert mode saves, a list of its own opened from the settings. */
+@Serializable
+data object PatchSelections
+
+/** The open-source licenses the manager is built on, a list of its own opened from the settings. */
+@Serializable
+data object Licenses
 
 @Serializable
 data object BatchPatcher : ComplexParameter<BatchPatcher.ViewModelParams> {
     @Parcelize
     data class ViewModelParams(
-        val targets: List<BatchTarget>,
-        val useMount: Boolean
+        val targets: List<BatchTarget>
     ) : Parcelable
 }
 
@@ -44,17 +52,23 @@ data object Patcher : ComplexParameter<Patcher.ViewModelParams> {
      * @param selectedApp The APK to patch and where it came from.
      * @param selectedPatches The patches to apply, per source.
      * @param options The values configured for those patches, per source.
+     * @param sourceScope The sources the run was offered. What is saved for the app afterwards
+     *   is replaced for these alone, so a source held back keeps what it had.
      * @param targetPackageName The install this run is aimed at when that is a clone rather than
      *   the app's own, which is not something [selectedApp] can say.
      * @param allowIncompatible Whether patches outside the APK's version were offered, kept so
      *   the selection reopened after a failed run offers the same ones.
+     * @param useMount Whether the build is mounted over the stock app with root rather than
+     *   installed, as chosen before patching.
      */
     @Parcelize
     data class ViewModelParams(
         val selectedApp: SelectedApp,
         val selectedPatches: PatchSelection,
         val options: @RawValue Options,
+        val sourceScope: Set<Int>,
         val targetPackageName: String? = null,
-        val allowIncompatible: Boolean = false
+        val allowIncompatible: Boolean = false,
+        val useMount: Boolean = false
     ) : Parcelable
 }

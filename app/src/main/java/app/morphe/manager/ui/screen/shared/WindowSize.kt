@@ -7,12 +7,16 @@ package app.morphe.manager.ui.screen.shared
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 
 /**
@@ -57,12 +61,10 @@ data class WindowSize(
     val heightSizeClass: WindowHeightSizeClass
 )
 
-/**
- * Calculate window size class based on current configuration
- */
+/** The window's size in dp. */
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
-fun rememberWindowSize(): WindowSize {
+fun windowSizeDp(): DpSize {
     // Measured off the window rather than Configuration, whose dp counts ignore the interface
     // scale the activity context applies on top of the display density. The configuration still
     // covers the first frame, before the window has been measured
@@ -74,6 +76,15 @@ fun rememberWindowSize(): WindowSize {
         .takeIf { it > 0.dp } ?: configuration.screenWidthDp.dp
     val heightDp = with(density) { containerSize.height.toDp() }
         .takeIf { it > 0.dp } ?: configuration.screenHeightDp.dp
+    return DpSize(widthDp, heightDp)
+}
+
+/**
+ * Calculate window size class based on current configuration
+ */
+@Composable
+fun rememberWindowSize(): WindowSize {
+    val (widthDp, heightDp) = windowSizeDp()
 
     return remember(widthDp, heightDp) {
         WindowSize(
@@ -92,13 +103,32 @@ fun rememberWindowSize(): WindowSize {
 }
 
 /**
+ * Keeps this within a centered content column of [maxWidth], filling a screen narrower than that,
+ * so a page's or dialog's header, content and bars all line up.
+ */
+fun Modifier.contentColumn(maxWidth: Dp = Defaults.ContentMaxWidth): Modifier =
+    widthIn(max = maxWidth).fillMaxWidth()
+
+/**
+ * Gutter each side of a list running the full [width], which centers a [Defaults.ContentMaxWidth]
+ * column in it with its own [gutter] inside. The list itself stays as wide as the screen, so it
+ * scrolls from anywhere on it and keeps its scrollbar at the edge.
+ */
+fun centeredGutter(width: Dp, gutter: Dp): Dp =
+    maxOf(gutter, (width - Defaults.ContentMaxWidth) / 2 + gutter)
+
+/** Whether the window is wide enough for a dialog to set its panes side by side, see [ListDialog]. */
+@Composable
+fun hasRoomForPanes(): Boolean = rememberWindowSize().widthSizeClass == WindowWidthSizeClass.Expanded
+
+/**
  * Get recommended content padding based on window size
  */
 val WindowSize.contentPadding: Dp
     get() = when (widthSizeClass) {
-        WindowWidthSizeClass.Compact -> Defaults.ContentPadding
-        WindowWidthSizeClass.Medium -> Defaults.ContentPaddingMedium
-        WindowWidthSizeClass.Expanded -> Defaults.ContentPaddingExpanded
+        WindowWidthSizeClass.Compact -> Defaults.SpaceLarge
+        WindowWidthSizeClass.Medium -> Defaults.SpaceExtraLarge
+        WindowWidthSizeClass.Expanded -> Defaults.SpaceExtraExtraLarge
     }
 
 /**

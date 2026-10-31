@@ -9,9 +9,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.Immutable
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,16 +17,19 @@ import app.morphe.manager.domain.installer.InstallerManager
 import app.morphe.manager.domain.installer.RootInstaller
 import app.morphe.manager.domain.installer.SessionInstaller
 import app.morphe.manager.domain.manager.PreferencesManager
-import app.morphe.manager.domain.manager.filterOptionsForTarget
-import app.morphe.manager.domain.manager.loadCopySelectionCandidates as loadCopySelectionCandidatesShared
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository.Companion.DEFAULT_SOURCE_UID
 import app.morphe.manager.domain.repository.PatchOptionsRepository
 import app.morphe.manager.domain.repository.PatchSelectionRepository
+import app.morphe.manager.domain.repository.SelectionSetRepository
+import app.morphe.manager.domain.repository.SelectionSetSummary
 import app.morphe.manager.domain.repository.SourceMuteRepository
+import app.morphe.manager.patcher.runtime.jvm.JvmInstallation
+import app.morphe.manager.network.api.MorpheAPI
 import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.ui.screen.settings.system.CopyTarget
 import app.morphe.manager.ui.screen.shared.CopySelectionCandidate
+import app.morphe.manager.util.ApkDownloadHelperContract
 import app.morphe.manager.util.AppDataResolver
 import app.morphe.manager.util.AppDataSource
 import app.morphe.manager.util.syncFcmTopics
@@ -37,22 +38,55 @@ import app.morphe.manager.worker.UpdateCheckWorker
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
+import java.util.Locale
+
+/**
+ * An app with saved patch selections or sets: its name as resolved for display, where that came
+ * from, how many patches each source it has a selection from holds, by source uid, and its sets.
+ */
+@Immutable
+data class SelectionApp(
+    val packageName: String,
+    val displayName: String,
+    val dataSource: AppDataSource,
+    val bundles: Map<Int, Int>,
+    val sets: List<SelectionSetSummary>
+)
+
+/** An installed APK download helper as the trust list shows it. Trust is per app, not per activity. */
+@Immutable
+data class ApkDownloadHelperApp(
+    val packageName: String,
+    val label: String
+)
 
 class SettingsViewModel(
     val prefs: PreferencesManager,
     private val installerManager: InstallerManager,
     private val rootInstaller: RootInstaller,
     private val selectionRepository: PatchSelectionRepository,
+    private val setRepository: SelectionSetRepository,
     private val sourceMuteRepository: SourceMuteRepository,
     private val optionsRepository: PatchOptionsRepository,
     private val patchBundleRepository: PatchBundleRepository,
     private val appDataResolver: AppDataResolver,
+    private val api: MorpheAPI,
     private val appContext: Context,
+    jvmInstallation: JvmInstallation,
+    /** State behind the copy panel, see [openCopy], and behind renaming and deleting sets. */
+    val selectionPanel: SelectionPanelController
 ) : ViewModel() {
+    /** Whether this device can patch in the embedded JVM at all. */
+    val jvmRuntimeAvailable = jvmInstallation.isAvailable
+
     /** True when Google Play Services is available; FCM handles notifications on these devices. */
     val hasGms: Boolean = GoogleApiAvailability.getInstance()
         .isGooglePlayServicesAvailable(appContext) == ConnectionResult.SUCCESS
@@ -164,27 +198,6 @@ class SettingsViewModel(
      * True for the duration of the current settings session after the user enables expert mode for the first time.
      * Reset to false when the user disables expert mode again.
      */
-    var showExpertModeNotice by mutableStateOf(false)
-        private set
-
-    private var previousExpertMode: Boolean? = null
-
-    /**
-     * Must be called from the UI whenever useExpertMode changes so the VM can
-     * derive [showExpertModeNotice] without holding its own coroutine-based observer here
-     * (the pref is already observed as Compose state in the composable).
-     */
-    fun onExpertModeChanged(newValue: Boolean) {
-        val prev = previousExpertMode
-        if (prev != null && newValue && !prev) {
-            showExpertModeNotice = true
-        }
-        if (!newValue) {
-            showExpertModeNotice = false
-        }
-        previousExpertMode = newValue
-    }
-
     fun setExpertMode(enabled: Boolean) = viewModelScope.launch {
         prefs.useExpertMode.update(enabled)
         if (enabled && !prefs.customFilePickerUserConfigured.get()) {
@@ -192,12 +205,8 @@ class SettingsViewModel(
         }
     }
 
-    fun setProcessRuntime(enabled: Boolean) = viewModelScope.launch {
-        prefs.useProcessRuntime.update(enabled)
-    }
-
-    fun setMemoryLimit(limit: Int) = viewModelScope.launch {
-        prefs.patcherProcessMemoryLimit.update(limit)
+    fun setJvmRuntime(enabled: Boolean) = viewModelScope.launch {
+        prefs.useJvmRuntime.update(enabled)
     }
 
     /** Enables/disables native library stripping for plain APKs, and simultaneously split APK filtering for split bundles. */
@@ -205,31 +214,80 @@ class SettingsViewModel(
         prefs.stripUnusedNativeLibs.update(enabled)
     }
 
+    /** Whether GitHub has turned down the token in use, which leaves requests going out without it. */
+    val gitHubPatRejected = combine(prefs.gitHubPat.flow, api.rejectedPat) { pat, rejected ->
+        pat.isNotBlank() && pat == rejected
+    }
+
+    suspend fun checkGitHubPat(pat: String) = api.checkGitHubPat(pat)
+
     fun setGitHubPat(pat: String, includeInExport: Boolean) = viewModelScope.launch {
         prefs.gitHubPat.update(pat)
         prefs.includeGitHubPatInExports.update(includeInExport)
     }
 
+    // Asking how to install and installing on its own exclude each other, so turning one on turns the other off
+
+    // Without root the installer prompt comes after patching and waits for the user there, so it
+    // excludes installing on its own. With root, it is answered before patching, and they go together
+
     fun setPromptInstallerOnInstall(enabled: Boolean) = viewModelScope.launch {
         prefs.promptInstallerOnInstall.update(enabled)
+        if (enabled && !isDeviceRooted()) prefs.autoInstallAfterPatching.update(false)
     }
 
     fun setAutoInstallAfterPatching(enabled: Boolean) = viewModelScope.launch {
         prefs.autoInstallAfterPatching.update(enabled)
+        if (enabled && !isDeviceRooted()) prefs.promptInstallerOnInstall.update(false)
+    }
+
+    fun setNoMountOnly(enabled: Boolean) = viewModelScope.launch {
+        prefs.noMountOnly.update(enabled)
     }
 
     fun setAutoUninstallWithShizuku(enabled: Boolean) = viewModelScope.launch {
         prefs.autoUninstallWithShizuku.update(enabled)
     }
 
+    fun setIgnoreInstallTargetRules(enabled: Boolean) = viewModelScope.launch {
+        prefs.ignoreInstallTargetRules.update(enabled)
+    }
+
+    /** Whether the device has root, which the patch mode and the rules tied to it depend on. */
+    fun isDeviceRooted() = rootInstaller.isDeviceRooted()
+
+    suspend fun isMagisk() = rootInstaller.isMagisk()
+
     fun setUseCustomFilePicker(enabled: Boolean) = viewModelScope.launch {
         prefs.useCustomFilePicker.update(enabled)
         prefs.customFilePickerUserConfigured.update(true)
     }
 
+    private val _apkDownloadHelpers = MutableStateFlow(emptyList<ApkDownloadHelperApp>())
+
+    /**
+     * The APK download helpers installed on the device, one per app. Kept here rather than looked
+     * up by each page that lists them, so a page coming back shows them at once instead of growing
+     * a row under a scroll it restored, see [refreshApkDownloadHelpers].
+     */
+    val apkDownloadHelpers: StateFlow<List<ApkDownloadHelperApp>> = _apkDownloadHelpers.asStateFlow()
+
+    /** Looks the installed helpers up again, as one may have come or gone since the last look. */
+    fun refreshApkDownloadHelpers() = viewModelScope.launch {
+        _apkDownloadHelpers.value = withContext(Dispatchers.IO) {
+            ApkDownloadHelperContract.findHelpers(appContext)
+                .distinctBy { it.componentName.packageName }
+                .map { ApkDownloadHelperApp(packageName = it.componentName.packageName, label = it.label) }
+        }
+    }
+
     fun setApkDownloadHelperTrusted(packageName: String, trusted: Boolean) = viewModelScope.launch {
         val current = prefs.trustedApkDownloadHelpers.get()
         prefs.trustedApkDownloadHelpers.update(if (trusted) current + packageName else current - packageName)
+    }
+
+    fun setOpenApkDownloadHelperDirectly(enabled: Boolean) = viewModelScope.launch {
+        prefs.openApkDownloadHelperDirectly.update(enabled)
     }
 
     fun setPatcherCompletionSound(enabled: Boolean) = viewModelScope.launch {
@@ -280,8 +338,7 @@ class SettingsViewModel(
 
     fun openShizukuApp(): Boolean = installerManager.openShizukuApp()
 
-    fun getShizukuStatus(): SessionInstaller.ShizukuStatus =
-        installerManager.shizukuStatus(InstallerManager.InstallTarget.PATCHER)
+    fun getShizukuStatus(): SessionInstaller.ShizukuStatus = installerManager.shizukuStatus()
 
     fun requestShizukuPermission(): Boolean = installerManager.requestShizukuPermission()
 
@@ -289,6 +346,45 @@ class SettingsViewModel(
     val selectionsSummary: StateFlow<Map<String, Map<Int, Int>>> =
         selectionRepository.getSelectionsSummaryFlow()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    /** Every set kept for any app. */
+    val selectionSets: StateFlow<List<SelectionSetSummary>> =
+        setRepository.summaries.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /**
+     * The apps with saved selections or sets, each with its name resolved and in name order, emitted
+     * once every name of a summary is in, so a list of them opens already in its order. Cold, so the
+     * names are resolved for whoever collects it now rather than kept from an earlier look.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun selectionApps(): Flow<List<SelectionApp>> =
+        combine(selectionRepository.getSelectionsSummaryFlow(), setRepository.summaries, ::Pair)
+            .mapLatest { (summary, sets) ->
+                val setsByPackage = sets.groupBy { it.packageName }
+                coroutineScope {
+                    (summary.keys + setsByPackage.keys).map { packageName ->
+                        async {
+                            val data = appDataResolver.resolveAppData(packageName)
+                            SelectionApp(
+                                packageName = packageName,
+                                displayName = data.displayName,
+                                dataSource = data.source,
+                                bundles = summary[packageName].orEmpty(),
+                                sets = setsByPackage[packageName].orEmpty()
+                            )
+                        }
+                    }.awaitAll()
+                }.sortedBy { it.displayName.lowercase(Locale.ROOT) }
+            }
+            .flowOn(Dispatchers.IO)
+
+    fun deleteSet(set: SelectionSetSummary) {
+        selectionPanel.deleteSet(viewModelScope, set)
+    }
+
+    fun renameSet(set: SelectionSetSummary, name: String) {
+        selectionPanel.renameSet(viewModelScope, set, name)
+    }
 
     /** Bundle uid → bundle name */
     val bundleNames: StateFlow<Map<Int, String>> =
@@ -324,12 +420,6 @@ class SettingsViewModel(
         packages.sumOf { optionsRepository.getOptionsCountForPackage(it) }
     }
 
-    /** Loads the options count for a single package (used by the per-package confirmation dialog). */
-    suspend fun loadOptionsCountForPackage(packageName: String): Int =
-        withContext(Dispatchers.IO) {
-            optionsRepository.getOptionsCountForPackage(packageName)
-        }
-
     /** Loads the options count for a specific package+bundle (used by bundle confirmation dialog). */
     suspend fun loadOptionsCountForBundle(packageName: String, bundleUid: Int): Int =
         withContext(Dispatchers.IO) {
@@ -353,69 +443,77 @@ class SettingsViewModel(
     /** Loads patch selections and options for one package+bundle. */
     suspend fun loadPatchDetails(packageName: String, bundleUid: Int): PatchDetails =
         withContext(Dispatchers.IO) {
-            val patchList = selectionRepository.exportForPackageAndBundle(packageName, bundleUid)
-            val rawOptions = optionsRepository.exportOptionsForBundle(
+            patchDetails(
                 packageName = packageName,
-                bundleUid = bundleUid
+                bundleUid = bundleUid,
+                patchList = selectionRepository.exportForPackageAndBundle(packageName, bundleUid),
+                rawOptions = optionsRepository.exportOptionsForBundle(packageName, bundleUid)
             )
-            val optionsMap = rawOptions.mapValues { (_, patchOptions) ->
-                patchOptions.mapValues { (_, jsonString) -> parseJsonValue(jsonString) }
-            }
-            val displayNames = targetBundlePatchInfos(packageName, bundleUid)
-                .mapValues { (_, info) -> info.displayName }
-            PatchDetails(patchList, optionsMap, displayNames)
         }
 
-    /** Assemble picker candidates intersected against the target bundle's patch list. */
-    suspend fun loadCopySelectionCandidates(
-        targetPackageName: String,
-        targetBundleUid: Int
-    ): List<CopySelectionCandidate> = withContext(Dispatchers.IO) {
-        val targetPatchNames = targetBundlePatchNames(targetPackageName, targetBundleUid)
-        loadCopySelectionCandidatesShared(
-            patchSelectionRepository = selectionRepository,
-            patchBundleRepository = patchBundleRepository,
-            appDataResolver = appDataResolver,
-            targetPackageName = targetPackageName,
-            targetBundleUid = targetBundleUid,
-            targetPatchNames = targetPatchNames
-        )
+    /** Loads what [set] holds, keyed by the source it holds it from. */
+    suspend fun loadSetDetails(set: SelectionSetSummary): Map<Int, PatchDetails> =
+        withContext(Dispatchers.IO) {
+            val stored = setRepository.stored(set.uid) ?: return@withContext emptyMap()
+            (stored.patches.keys + stored.options.keys).associateWith { bundleUid ->
+                patchDetails(
+                    packageName = stored.packageName,
+                    bundleUid = bundleUid,
+                    patchList = stored.patches[bundleUid].orEmpty(),
+                    rawOptions = stored.options[bundleUid].orEmpty()
+                )
+            }
+        }
+
+    /** [patchList] and [rawOptions] saved from [bundleUid], named as the bundle names them today. */
+    private suspend fun patchDetails(
+        packageName: String,
+        bundleUid: Int,
+        patchList: List<String>,
+        rawOptions: Map<String, Map<String, String>>
+    ): PatchDetails {
+        val optionsMap = rawOptions.mapValues { (_, patchOptions) ->
+            patchOptions.mapValues { (_, jsonString) -> parseJsonValue(jsonString) }
+        }
+        val displayNames = targetBundlePatchInfos(packageName, bundleUid)
+            .mapValues { (_, info) -> info.displayName }
+        return PatchDetails(patchList, optionsMap, displayNames)
+    }
+
+    /** Opens the panel [target] is copied into from, with what it can copy loading. */
+    fun openCopy(target: CopyTarget) = viewModelScope.launch {
+        val targetPatchNames = withContext(Dispatchers.IO) {
+            targetBundlePatchNames(target.packageName, target.bundleUid)
+        }
+        selectionPanel.open()
+        selectionPanel.loadCandidates(viewModelScope, target.packageName, target.bundleUid, targetPatchNames)
     }
 
     /**
-     * Replace the target's saved selection (and matching options) with a filtered copy of
-     * [candidate]'s data. Entries the target bundle no longer defines are silently dropped.
+     * Replace the target's saved selection (and matching options) with what [candidate] holds of
+     * it. Entries the target bundle no longer defines are dropped.
      */
     fun copySelectionFromBundle(
         target: CopyTarget,
         candidate: CopySelectionCandidate
-    ) = viewModelScope.launch(Dispatchers.IO) {
-        val targetPatches = targetBundlePatchInfos(target.packageName, target.bundleUid)
-        val sourcePatchNames = selectionRepository.exportForPackageAndBundle(
-            candidate.packageName,
-            candidate.bundleUid
-        )
-        val filteredPatches = sourcePatchNames.filter { it in targetPatches }
-        if (filteredPatches.isEmpty()) return@launch
+    ) = viewModelScope.launch {
+        val targetPatches = withContext(Dispatchers.IO) {
+            targetBundlePatchInfos(target.packageName, target.bundleUid)
+        }
+        val copied = selectionPanel.resolveCopy(candidate, targetPatches) ?: return@launch
+        if (copied.patches.isEmpty()) return@launch
 
-        selectionRepository.importForPackageAndBundle(
-            packageName = target.packageName,
-            bundleUid = target.bundleUid,
-            patches = filteredPatches
-        )
-
-        val sourceOptions = optionsRepository.exportOptionsForBundle(
-            packageName = candidate.packageName,
-            bundleUid = candidate.bundleUid
-        )
-        val filteredOptions = filterOptionsForTarget(sourceOptions, targetPatches)
-        if (filteredOptions.isNotEmpty()) {
-            optionsRepository.importOptionsForBundle(
+        withContext(Dispatchers.IO) {
+            selectionRepository.importForPackageAndBundle(
                 packageName = target.packageName,
                 bundleUid = target.bundleUid,
-                options = filteredOptions
+                patches = copied.patches.toList()
             )
+            // Written even when empty, which clears the target's old options along with its selection
+            optionsRepository.saveOptions(target.packageName, mapOf(target.bundleUid to copied.options))
         }
+        selectionPanel.copied(copied.patches.size)
+        selectionPanel.close()
     }
 
     private suspend fun targetBundlePatchNames(packageName: String, bundleUid: Int): Set<String> =

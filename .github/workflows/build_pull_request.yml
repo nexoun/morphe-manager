@@ -48,7 +48,12 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21'
+          # 17 and 25 are the toolchains that build the embedded JVMs, 17 also shrinks their host.
+          # The last one listed, 21, stays the default that runs Gradle
+          java-version: |
+            17
+            25
+            21
 
       - name: Cache Gradle
         uses: burrunan/gradle-cache-action@v3

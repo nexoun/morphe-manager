@@ -22,6 +22,7 @@ import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.annotation.StringRes
 import app.morphe.manager.R
@@ -137,17 +138,30 @@ class InstallerManager(
     fun getPrimaryToken(): Token = parseToken(prefs.installerPrimary.getBlocking())
 
     /**
-     * Whether an install started right after patching reaches the user on its own, either
-     * silently or through a confirmation the installer knows how to put in front of them.
+     * Whether the installer prompt is answered before patching, which a rooted device does by
+     * choosing between a mount and a standard install. Anywhere else it comes after patching.
      */
-    suspend fun autoInstallAllowed(targetPackageName: String): Boolean {
-        if (!prefs.autoInstallAfterPatching.get()) return false
-        if (prefs.promptInstallerOnInstall.get()) return false
+    suspend fun promptsBeforePatching(): Boolean =
+        prefs.promptInstallerOnInstall.get() && rootInstaller.isDeviceRooted()
 
-        return when (parseToken(prefs.installerPrimary.get())) {
-            Token.Shizuku, Token.ShizukuPlayStore -> true
-            Token.Internal -> sessionInstaller.canUpdateSilently(targetPackageName)
-            else -> false
+    /**
+     * Whether an install started right after patching reaches the user on its own, either
+     * silently or through a confirmation the installer knows how to put in front of them. A
+     * standard install chosen before patching goes through the default installer.
+     *
+     * @param mount Whether the build is mounted rather than installed, which root does without
+     *   any installer.
+     */
+    suspend fun autoInstallAllowed(targetPackageName: String, mount: Boolean): Boolean {
+        if (!prefs.autoInstallAfterPatching.get()) return false
+        if (mount) return true
+        // A prompt still to come after patching needs the user there to answer it
+        if (prefs.promptInstallerOnInstall.get() && !promptsBeforePatching()) return false
+
+        return when (val token = parseToken(prefs.installerPrimary.get())) {
+            // Both go through a system session, which only updates an app silently in some cases
+            Token.Internal, Token.AutoSaved -> sessionInstaller.canUpdateSilently(targetPackageName)
+            else -> token.supportsAutoInstall
         }
     }
 
@@ -255,19 +269,6 @@ class InstallerManager(
         )
     }
 
-    /**
-     * Original resolvePlan method for backward compatibility.
-     * Use [resolvePlanWithStatus] for more detailed information.
-     */
-    fun resolvePlan(
-        target: InstallTarget,
-        sourceFile: File,
-        expectedPackage: String,
-        sourceLabel: String?
-    ): InstallPlan {
-        return resolvePlanWithStatus(target, sourceFile, expectedPackage, sourceLabel).plan
-    }
-
     fun cleanup(plan: InstallPlan.External) {
         runCatching {
             app.revokeUriPermission(plan.uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -280,6 +281,7 @@ class InstallerManager(
             .distinct()
             .map { Token.Component(it) }
 
+    /** The plan for [token], whose availability callers have already checked. */
     private fun createPlan(
         token: Token,
         target: InstallTarget,
@@ -289,65 +291,46 @@ class InstallerManager(
     ): InstallPlan? {
         return when (token) {
             Token.Internal -> InstallPlan.Internal(target)
-            Token.PlayStore -> if (availabilityFor(Token.PlayStore, target, checkRoot = true).available) {
-                InstallPlan.PlayStore(target)
-            } else null
-
-            Token.RootPlayStore -> if (availabilityFor(Token.RootPlayStore, target, checkRoot = true).available) {
-                InstallPlan.RootPlayStore(target)
-            } else null
-
+            Token.PlayStore -> InstallPlan.PlayStore(target)
+            Token.RootPlayStore -> InstallPlan.RootPlayStore(target)
             Token.None -> null
-            Token.AutoSaved -> if (availabilityFor(Token.AutoSaved, target, checkRoot = true).available) {
-                InstallPlan.Mount(target)
-            } else null
-
-            Token.Shizuku -> if (availabilityFor(Token.Shizuku, target, checkRoot = true).available) {
-                InstallPlan.Shizuku(target)
-            } else null
-
-            Token.ShizukuPlayStore -> if (availabilityFor(Token.ShizukuPlayStore, target, checkRoot = true).available) {
-                InstallPlan.ShizukuPlayStore(target)
-            } else null
-
+            Token.AutoSaved -> InstallPlan.Mount(target)
+            Token.Shizuku -> InstallPlan.Shizuku(target)
+            Token.ShizukuPlayStore -> InstallPlan.ShizukuPlayStore(target)
             is Token.Component -> {
-                if (!availabilityFor(token, target).available) {
-                    null
-                } else {
-                    val uri = InstallerFileProvider.getUriForFile(app, sourceFile)
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, APK_MIMETYPE)
-                        @SuppressLint("WrongConstant")
-                        addFlags(
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
-                                    Intent.FLAG_GRANT_PREFIX_URI_PERMISSION or
-                                    Intent.FLAG_ACTIVITY_NEW_TASK
-                        )
-                        clipData = ClipData.newRawUri("APK", uri)
-                        putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
-                        putExtra(Intent.EXTRA_INSTALLER_PACKAGE_NAME, app.packageName)
-                        component = token.componentName
-                    }
+                val uri = InstallerFileProvider.getUriForFile(app, sourceFile)
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, APK_MIMETYPE)
                     @SuppressLint("WrongConstant")
-                    app.grantUriPermission(
-                        token.componentName.packageName,
-                        uri,
+                    addFlags(
                         Intent.FLAG_GRANT_READ_URI_PERMISSION or
                                 Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
-                                Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
+                                Intent.FLAG_GRANT_PREFIX_URI_PERMISSION or
+                                Intent.FLAG_ACTIVITY_NEW_TASK
                     )
-                    InstallPlan.External(
-                        target = target,
-                        intent = intent,
-                        sharedFile = File(app.cacheDir, "${InstallerFileProvider.SHARE_DIR}/${sourceFile.name}"),
-                        uri = uri,
-                        expectedPackage = expectedPackage,
-                        installerLabel = resolveLabel(token.componentName),
-                        sourceLabel = sourceLabel,
-                        token = token
-                    )
+                    clipData = ClipData.newRawUri("APK", uri)
+                    putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
+                    putExtra(Intent.EXTRA_INSTALLER_PACKAGE_NAME, app.packageName)
+                    component = token.componentName
                 }
+                @SuppressLint("WrongConstant")
+                app.grantUriPermission(
+                    token.componentName.packageName,
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
+                            Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
+                )
+                InstallPlan.External(
+                    target = target,
+                    intent = intent,
+                    sharedFile = File(app.cacheDir, "${InstallerFileProvider.SHARE_DIR}/${sourceFile.name}"),
+                    uri = uri,
+                    expectedPackage = expectedPackage,
+                    installerLabel = resolveLabel(token.componentName),
+                    sourceLabel = sourceLabel,
+                    token = token
+                )
             }
         }
     }
@@ -497,7 +480,7 @@ class InstallerManager(
                 Availability(false, R.string.installer_status_shizuku_not_installed)
             } else if (checkRoot) {
                 // Full availability check
-                sessionInstaller.shizukuAvailability(target)
+                sessionInstaller.shizukuAvailability()
             } else {
                 // Just verify Shizuku is installed (for UI display)
                 Availability(true)
@@ -510,7 +493,7 @@ class InstallerManager(
             } else if (!sessionInstaller.isShizukuInstalled()) {
                 Availability(false, R.string.installer_status_shizuku_not_installed)
             } else if (checkRoot) {
-                sessionInstaller.shizukuAvailability(target)
+                sessionInstaller.shizukuAvailability()
             } else {
                 Availability(true)
             }
@@ -623,6 +606,22 @@ class InstallerManager(
     )
 
     sealed class Token {
+        /**
+         * Whether an install through it can go ahead right after patching, which is what the
+         * auto-install setting is offered for. Root mount mounts its own builds with root and hands
+         * the rest to the system installer, which needs Android 12+ to update silently.
+         */
+        val supportsAutoInstall: Boolean
+            get() = when (this) {
+                Shizuku, ShizukuPlayStore, AutoSaved, RootPlayStore -> true
+                Internal -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                else -> false
+            }
+
+        /** Whether it is root mount, with or without Google Play as the install source. */
+        val isRootMount: Boolean
+            get() = this == AutoSaved || this == RootPlayStore
+
         object Internal : Token()
         object PlayStore : Token()
         object RootPlayStore : Token()
@@ -659,8 +658,7 @@ class InstallerManager(
 
     fun openShizukuApp(): Boolean = sessionInstaller.launchShizukuApp()
 
-    fun shizukuStatus(target: InstallTarget): SessionInstaller.ShizukuStatus =
-        sessionInstaller.shizukuStatus(target)
+    fun shizukuStatus(): SessionInstaller.ShizukuStatus = sessionInstaller.shizukuStatus()
 
     fun requestShizukuPermission(): Boolean = sessionInstaller.requestShizukuPermission()
 

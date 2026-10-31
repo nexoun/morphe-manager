@@ -5,7 +5,6 @@
 
 package app.morphe.manager.ui.screen.home
 
-import android.content.Context
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -18,7 +17,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.zIndex
 import app.morphe.manager.domain.manager.HomeAppCategoryViewMode
 import app.morphe.manager.ui.model.HomeAppItem
-import app.morphe.manager.util.toast
+import app.morphe.manager.ui.screen.shared.DragHandle
+import app.morphe.manager.ui.screen.shared.UserMessages
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyListState
 
@@ -108,8 +108,8 @@ internal fun LazyListScope.groupedAppCards(
     appActions: HomeAppActions,
     categoryReorderableState: ReorderableLazyListState,
     haptic: HapticFeedback,
-    context: Context,
-    categoryActionsUnavailableToast: String,
+    messages: UserMessages,
+    categoryActionsUnavailableMessage: String,
 ) {
     val selectedPackages = state.selectedPackages
     groups.forEach { group ->
@@ -123,7 +123,7 @@ internal fun LazyListScope.groupedAppCards(
                 isFooterBusy -> null
                 group.editable -> { -> state.activeCategoryId = group.id }
                 group.sourceUid != null -> { -> state.activeSourceUid = group.sourceUid }
-                else -> { -> context.toast(categoryActionsUnavailableToast) }
+                else -> { -> messages.show(categoryActionsUnavailableMessage) }
             }
             val headerContent: @Composable ((@Composable () -> Unit)?) -> Unit = { dragHandle ->
                 HomeCategoryHeader(
@@ -151,7 +151,7 @@ internal fun LazyListScope.groupedAppCards(
             if (canReorderHeader && state.isCategoryReorderMode) {
                 ReorderableItem(categoryReorderableState, key = headerKey) { _ ->
                     headerContent {
-                        CategoryHeaderDragHandle(
+                        DragHandle(
                             modifier = Modifier.draggableHandle(
                                 onDragStarted = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -166,14 +166,12 @@ internal fun LazyListScope.groupedAppCards(
         }
 
         if (!group.collapsed) {
+            val groupKey = group.selectionKey()
             items(
                 items = group.items,
                 key = { item -> "category_${group.id ?: "uncategorized"}_${item.id}" },
                 contentType = { APP_CARD_CONTENT_TYPE }
             ) { item ->
-                val groupKey = group.selectionKey()
-                val isSelected = selectedPackages.contains(item.id) &&
-                        (state.selectedGroupKey == null || state.selectedGroupKey == groupKey)
                 DynamicAppCard(
                     item = item,
                     onAppClick = {
@@ -187,7 +185,7 @@ internal fun LazyListScope.groupedAppCards(
                     onShowPatches = { appActions.onShowPatches(item) },
                     showGestureHint = item.id == firstFilteredPackage && showGestureHint,
                     onGestureHintShown = appActions.onGestureHintShown,
-                    isSelected = isSelected,
+                    isSelected = selectedPackages.contains(item.id),
                     isMultiSelectMode = state.isMultiSelectMode,
                     onLongPress = {
                         // Skip so the category bar doesn't overlap with app multi-select

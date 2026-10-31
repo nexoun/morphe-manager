@@ -9,8 +9,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.ui.theme.ThemeTraitsDefaults
@@ -24,8 +31,8 @@ import app.morphe.manager.ui.theme.ThemeTraitsDefaults
  * without it.
  */
 object CardBorder {
-    /** Shared by both, so a tinted card and a neutral one line up side by side. */
-    private val Width: Dp = 1.dp
+    /** Shared by every card, so a tinted one, a neutral one and a glass one line up side by side. */
+    val Width: Dp = 1.dp
 
     /** Low enough that the accent traces the card without competing with its own fill. */
     private const val TINTED_ALPHA = 0.25f
@@ -46,3 +53,31 @@ object CardBorder {
 /** Draws [border] around [shape], or nothing where [CardBorder] leaves the edge off. */
 fun Modifier.cardBorder(border: BorderStroke?, shape: Shape): Modifier =
     if (border != null) border(border, shape) else this
+
+/**
+ * Draws [border] around [shape] except along its bottom, for a surface standing on the bottom
+ * edge of the screen, where a line would only trace the edge of the display.
+ */
+fun Modifier.sheetBorder(border: BorderStroke?, shape: Shape): Modifier {
+    if (border == null) return this
+    return drawWithCache {
+        val strokeWidth = border.width.toPx()
+        // Inset by half the stroke, as a border is, so the line stays whole inside the surface
+        val path = Path().apply {
+            addOutline(
+                shape.createOutline(
+                    Size(size.width - strokeWidth, size.height - strokeWidth),
+                    layoutDirection,
+                    this@drawWithCache
+                )
+            )
+            translate(Offset(strokeWidth / 2, strokeWidth / 2))
+        }
+        onDrawWithContent {
+            drawContent()
+            clipRect(bottom = size.height - strokeWidth) {
+                drawPath(path, border.brush, style = Stroke(strokeWidth))
+            }
+        }
+    }
+}

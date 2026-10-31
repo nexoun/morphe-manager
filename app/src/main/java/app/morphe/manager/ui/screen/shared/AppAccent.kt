@@ -25,10 +25,11 @@ import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.isDefault
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.patcher.patch.BundleAppMetadata
 import app.morphe.manager.ui.theme.ThemeTraitsDefaults
-import app.morphe.manager.util.compositeOver
+import app.morphe.manager.util.compositeOpaqueOver
 import app.morphe.manager.util.contrastingContent
 import app.morphe.manager.util.isDarkBackground
 import app.morphe.manager.util.isExtremeAccent
+import app.morphe.manager.util.raisedOn
 import app.morphe.manager.util.rememberSourceAccent
 import org.koin.compose.koinInject
 
@@ -65,10 +66,19 @@ fun appAccentFill(accentColor: Color?): Color =
 @Composable
 fun appAccentCardFill(accentColor: Color?): Color? = usableAppAccent(accentColor)?.copy(alpha = AccentAlpha.CARD)
 
-/** Border of a card that carries an app's own color, see [AccentAlpha.BORDER]. */
+/**
+ * Border of a card that carries an app's own color, see [AccentAlpha.BORDER], or a neutral one without
+ * it. A dark color fades into a dark background at that alpha, so the edge is raised to [BORDER_CONTRAST].
+ */
 @Composable
-fun appAccentBorder(accentColor: Color?): Color =
-    appAccentTint(accentColor, alpha = AccentAlpha.BORDER, neutral = MaterialTheme.colorScheme.outlineVariant)
+fun appAccentBorder(accentColor: Color?): Color {
+    val colors = MaterialTheme.colorScheme
+    return appAccentTint(accentColor, alpha = AccentAlpha.BORDER, neutral = colors.outlineVariant)
+        .raisedOn(colors.background, ink = colors.onBackground, minRatio = BORDER_CONTRAST)
+}
+
+/** Contrast a card's edge keeps against the background, enough to hold the card apart on pure black. */
+private const val BORDER_CONTRAST = 2.5f
 
 /**
  * Hands [accentColor] to everything drawn inside, see [LocalAccent], for a dialog or a header that
@@ -88,7 +98,7 @@ fun ProvideAccent(accentColor: Color?, content: @Composable () -> Unit) {
 fun ProvideCardAccent(accentColor: Color?, fill: Color, content: @Composable () -> Unit) {
     CompositionLocalProvider(
         LocalAccent provides usableAppAccent(accentColor),
-        LocalCardBackground provides fill.compositeOver(MaterialTheme.colorScheme.background),
+        LocalCardBackground provides fill.compositeOpaqueOver(MaterialTheme.colorScheme.background),
         content = content
     )
 }

@@ -7,17 +7,13 @@ package app.morphe.manager.ui.screen.home
 
 import android.content.pm.PackageInfo
 import android.view.HapticFeedbackConstants
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,131 +25,27 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.*
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.data.room.apps.installed.InstalledApp
 import app.morphe.manager.ui.model.HomeAppItem
 import app.morphe.manager.ui.screen.shared.*
-import app.morphe.manager.ui.screen.shared.Animations
-import app.morphe.manager.ui.theme.LocalAppCardColorResolver
-import app.morphe.manager.ui.theme.LocalThemeTraits
-import app.morphe.manager.ui.theme.ThemeTraitsDefaults
 import app.morphe.manager.util.*
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 // A verdict answered from cache lands within a frame, so the badge waits rather than flashing
 private const val INSTALL_VERIFICATION_BADGE_DELAY_MS = 400L
-
-// Apps whose version strings carry a build stamp run far past this, and printing one in a badge
-// would leave no room for the version the card already shows, so those are badged by word instead
-private const val MAX_BADGE_VERSION_LENGTH = 10
-
-private data class HomeAppCardStyle(
-    val monochrome: Boolean,
-    val outlines: Boolean,
-    val colorResolver: AppCardColorResolver?,
-    val iconSize: Dp,
-    val titleColor: Color,
-    val subtitleColor: Color,
-    val titleStyle: TextStyle,
-    val subtitleStyle: TextStyle,
-    val chipContainerColor: Color,
-    val chipContentColor: Color,
-    val cardColor: Color,
-    val cardRadius: Dp = 24.dp,
-    val cardHeight: Dp = 80.dp,
-    val contentPadding: Dp = 16.dp,
-    val contentSpacing: Dp = 16.dp
-) {
-    /**
-     * Applies the card colors chosen in the appearance settings to [bundleColors], the palette
-     * declared by this card's own bundle. Stops bound to the bundle are derived from it, so the
-     * result stays per-app even when the rest of the gradient is fixed.
-     */
-    fun cardColors(bundleColors: List<Color>): List<Color> =
-        colorResolver?.resolve(bundleColors) ?: bundleColors
-
-    /**
-     * This style adjusted to the gradient it will be drawn on. White reads on the colors a bundle
-     * declares for itself, but the appearance settings let a card be any color, including one
-     * light enough to swallow it.
-     */
-    fun onCard(bundleColors: List<Color>): HomeAppCardStyle {
-        if (monochrome) return this
-
-        val fill = cardColors(bundleColors).blend()
-        if (fill.requiresLightContent()) return this
-
-        return copy(
-            titleColor = Color.Black,
-            subtitleColor = Color.Black.copy(alpha = subtitleColor.alpha),
-            chipContainerColor = Color.Black.copy(alpha = chipContainerColor.alpha),
-            chipContentColor = Color.Black
-        )
-    }
-}
-
-@Composable
-private fun homeAppCardStyle(subtitleAlpha: Float = 0.75f): HomeAppCardStyle {
-    // The cards draw a palette of their own rather than shared tokens, so they read the traits directly
-    val traits = LocalThemeTraits.current
-    val monochrome = traits.monochrome
-    val titleShadow = ThemeTraitsDefaults.textShadow(
-        Shadow(
-            color = Color.Black.copy(alpha = 0.4f),
-            offset = Offset(0f, 2f),
-            blurRadius = 4f
-        )
-    )
-    val subtitleShadow = ThemeTraitsDefaults.textShadow(
-        Shadow(
-            color = Color.Black.copy(alpha = 0.4f),
-            offset = Offset(0f, 1f),
-            blurRadius = 2f
-        )
-    )
-
-    return HomeAppCardStyle(
-        monochrome = monochrome,
-        outlines = traits.outlines,
-        colorResolver = LocalAppCardColorResolver.current,
-        iconSize = 60.dp,
-        titleColor = if (monochrome) MaterialTheme.colorScheme.onSurface else Color.White,
-        subtitleColor = if (monochrome) {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        } else {
-            Color.White.copy(alpha = subtitleAlpha)
-        },
-        titleStyle = MaterialTheme.typography.titleLarge.copy(
-            fontWeight = FontWeight.Bold,
-            shadow = titleShadow
-        ),
-        subtitleStyle = MaterialTheme.typography.bodyMedium.copy(shadow = subtitleShadow),
-        chipContainerColor = if (monochrome) {
-            MaterialTheme.colorScheme.surfaceContainerHighest
-        } else {
-            Color.White.copy(alpha = 0.20f)
-        },
-        chipContentColor = if (monochrome) {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        } else {
-            Color.White
-        },
-        cardColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    )
-}
 
 /**
  * Shared icon + text content for [AppCardLayout] rows.
@@ -165,6 +57,7 @@ private fun homeAppCardStyle(subtitleAlpha: Float = 0.75f): HomeAppCardStyle {
  * @param subtitle       Secondary line shown below [displayName]; null → not rendered.
  * @param gradientColors Gradient palette forwarded to [AppIcon] placeholder, unless the user
  *   picked fixed card colors in the appearance settings.
+ * @param subtitleBadges Badges following [subtitle] on its line, for marks meant to stand out of it.
  */
 @Composable
 internal fun RowScope.AppCardContent(
@@ -172,22 +65,49 @@ internal fun RowScope.AppCardContent(
     packageInfo: PackageInfo?,
     displayName: String,
     subtitle: String?,
-    gradientColors: List<Color>
+    gradientColors: List<Color>,
+    subtitleBadges: @Composable RowScope.() -> Unit = {}
 ) {
-    val cardStyle = homeAppCardStyle().onCard(gradientColors)
+    AppCardContent(
+        displayName = displayName,
+        subtitle = subtitle,
+        gradientColors = gradientColors,
+        subtitleBadges = subtitleBadges
+    ) { placeholderColors ->
+        AppIcon(
+            packageInfo = packageInfo,
+            packageName = if (packageInfo == null) packageName else null,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            preferredSource = AppDataSource.PATCHED_APK,
+            placeholderGradientColors = placeholderColors
+        )
+    }
+}
 
-    AppIcon(
-        packageInfo = packageInfo,
-        packageName = if (packageInfo == null) packageName else null,
-        contentDescription = null,
-        modifier = Modifier.size(cardStyle.iconSize),
-        preferredSource = AppDataSource.PATCHED_APK,
-        placeholderGradientColors = cardStyle.cardColors(gradientColors)
-    )
+/**
+ * [AppCardContent] with [icon] in the slot of the app's icon, handed the card colors a placeholder
+ * wears. A glyph drawn there takes the card's text color, which is picked to read on its gradient.
+ */
+@Composable
+internal fun RowScope.AppCardContent(
+    displayName: String,
+    subtitle: String?,
+    gradientColors: List<Color>,
+    subtitleBadges: @Composable RowScope.() -> Unit = {},
+    icon: @Composable (placeholderColors: List<Color>) -> Unit
+) {
+    val cardStyle = glassCardStyle().onCard(gradientColors)
+
+    Box(modifier = Modifier.size(cardStyle.iconSize)) {
+        CompositionLocalProvider(LocalContentColor provides cardStyle.titleColor) {
+            icon(cardStyle.cardColors(gradientColors))
+        }
+    }
 
     Column(
         modifier = Modifier.weight(1f),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(cardStyle.textSpacing)
     ) {
         Text(
             text = displayName,
@@ -198,19 +118,25 @@ internal fun RowScope.AppCardContent(
         )
 
         if (subtitle != null) {
-            Text(
+            Row(
                 // Matches the badge-height subtitle row of the installed cards, so names line up
                 // across every card in the list
-                modifier = Modifier
-                    .height(statusBadgeHeight)
-                    .wrapContentHeight(Alignment.CenterVertically),
-                text = subtitle,
-                style = cardStyle.subtitleStyle,
-                color = cardStyle.subtitleColor,
-                // The row is one badge tall, so a subtitle that wraps would be cut in half
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+                modifier = Modifier.height(statusBadgeHeight),
+                horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    // Gives way to the badges, which keep their words whole
+                    modifier = Modifier.weight(1f, fill = false),
+                    text = subtitle,
+                    style = cardStyle.subtitleStyle,
+                    color = cardStyle.subtitleColor,
+                    // The row is one badge tall, so a subtitle that wraps would be cut in half
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                subtitleBadges()
+            }
         }
     }
 }
@@ -220,6 +146,7 @@ internal fun RowScope.AppCardContent(
  * button when there is no record to show.
  *
  * @param showStatusBadges Whether the badges pinned to the end of the card may show.
+ * @param selected Whether the card is picked, null outside a selection.
  */
 @Composable
 internal fun HomeAppCard(
@@ -227,6 +154,7 @@ internal fun HomeAppCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     showStatusBadges: Boolean = true,
+    selected: Boolean? = null,
     onLongClick: (() -> Unit)? = null
 ) {
     val installedApp = item.installedApp
@@ -235,6 +163,7 @@ internal fun HomeAppCard(
             item = item,
             installedApp = installedApp,
             showStatusBadges = showStatusBadges,
+            selected = selected,
             onClick = onClick,
             onLongClick = onLongClick,
             modifier = modifier
@@ -242,6 +171,7 @@ internal fun HomeAppCard(
     } else {
         NotPatchedAppCard(
             item = item,
+            selected = selected,
             onClick = onClick,
             onLongClick = onLongClick,
             modifier = modifier
@@ -260,16 +190,16 @@ private fun InstalledAppCard(
     item: HomeAppItem,
     installedApp: InstalledApp,
     showStatusBadges: Boolean,
+    selected: Boolean?,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
-    val cardStyle = homeAppCardStyle(subtitleAlpha = 0.85f).onCard(item.gradientColors)
+    val cardStyle = glassCardStyle(subtitleAlpha = 0.85f).onCard(item.gradientColors)
 
     val versionLabel = stringResource(R.string.version)
     val cloneLabel = stringResource(R.string.clone)
     val installedLabel = stringResource(R.string.installed)
-    val updateLabel = stringResource(R.string.update)
     val updateAvailableLabel = stringResource(R.string.update_available)
     val supportedVersionLabel = stringResource(R.string.home_app_info_newest_supported_version)
     val deletedLabel = stringResource(R.string.uninstalled)
@@ -289,20 +219,29 @@ private fun InstalledAppCard(
     }
 
     val version = remember(item) { item.version.withVersionPrefix() }
-    // What tells the app from a namesake leads the row, ahead of the version
+    // What tells the app from a namesake leads the row, ahead of the version, which runs on to the
+    // one the sources support where there is a newer one. A long pair is cut at its end, leaving
+    // the app's dialog to print both in full
     val subtitle = remember(item) {
-        listOfNotNull(item.nameSuffix, version.ifEmpty { null }).joinToString(" • ")
+        val supportedVersion = item.versionStatus?.takeIf { item.showsVersionBadge }?.supportedVersion
+        val versions = if (supportedVersion != null) {
+            "$version → ${supportedVersion.withVersionPrefix()}"
+        } else {
+            version
+        }
+        listOfNotNull(item.nameSuffix, versions.ifEmpty { null }).joinToString(" • ")
     }
 
-    // The version worth badging, out of the one the sources support: only when it is short enough
-    // to leave the row its width, with the long build-stamped kind left to the app's dialog, which
-    // can print both versions in full
-    val supportedVersionBadge = remember(item) {
-        item.versionStatus
-            ?.takeIf { item.showsVersionBadge && it.supportedVersion.length <= MAX_BADGE_VERSION_LENGTH }
-            ?.supportedVersion
-            ?.withVersionPrefix()
+    // Newer patches and a newer supported app version are both answered by rebuilding the app, so
+    // one mark stands for either. Only the newer version asks for a newer APK, so it leads
+    val updateMark = when {
+        item.showsVersionBadge -> AppStateIcons.NewerVersion
+        item.showsUpdateBadge -> AppStateIcons.NewerPatches
+        else -> null
     }
+    // A copy is marked where every other card is, and steps over to the other corner for an
+    // update, which is the mark worth finding in the same place down the list
+    val cloneMark = AppStateIcons.Clone.takeIf { item.isClone }
 
     // The states the badges stand for are read out whether the badges themselves are showing or
     // not, so reordering does not quietly drop them from the card's description
@@ -349,29 +288,42 @@ private fun InstalledAppCard(
         gradientColors = item.gradientColors,
         onClick = onClick,
         onLongClick = onLongClick,
+        selected = selected,
         modifier = modifier.semantics {
             role = Role.Button
             this.contentDescription = contentDesc
         }
     ) {
         // App icon
-        AppIcon(
-            packageInfo = item.packageInfo,
-            // Named after the package this record was installed under: a clone carries an icon of
-            // its own, which is regularly the whole point of keeping several copies of an app apart
-            packageName = installedApp.currentPackageName,
-            contentDescription = null,
-            modifier = Modifier.size(cardStyle.iconSize),
-            preferredSource = AppDataSource.INSTALLED,
-            // A record can outlive every artifact carrying its icon, and the glass placeholder is
-            // what the rest of the list shows in that case
-            placeholderGradientColors = cardStyle.cardColors(item.gradientColors)
-        )
+        // Frosted and as tall as the badges in the row, but capped so a large font can't bury the icon
+        MarkedIcon(
+            mark = updateMark ?: cloneMark,
+            startMark = cloneMark.takeIf { updateMark != null },
+            markColor = cardStyle.markContainerColor,
+            markSize = cardStyle.markSize,
+            markContentColor = cardStyle.chipContentColor,
+            iconSize = cardStyle.iconSize,
+            contentFraction = AppIconContentFraction
+        ) {
+            AppIcon(
+                packageInfo = item.packageInfo,
+                // Named after the package this record was installed under: a clone carries an icon
+                // of its own, which is regularly the whole point of keeping several copies of an
+                // app apart
+                packageName = installedApp.currentPackageName,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                preferredSource = AppDataSource.INSTALLED,
+                // A record can outlive every artifact carrying its icon, and the glass placeholder
+                // is what the rest of the list shows in that case
+                placeholderGradientColors = cardStyle.cardColors(item.gradientColors)
+            )
+        }
 
         // App info
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(cardStyle.textSpacing)
         ) {
             // App name
             Text(
@@ -382,26 +334,14 @@ private fun InstalledAppCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Version + deleted status + update chip, both pinned to the card edge
+            // Version, with the install's state badges pinned to the card edge
             Row(
                 // Badge height is reserved whether a badge is showing, otherwise the row
                 // grows around it and nudges the app name above out of place
                 modifier = Modifier.height(statusBadgeHeight),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Says what the card is rather than how its install is doing, so it leads the
-                // row and stays put while the state badges at the end come and go. Wordless
-                // because the badges it shares the row with need the width for their own labels
-                if (item.isClone) {
-                    StatusBadge(
-                        text = null,
-                        icon = Icons.Outlined.ContentCopy,
-                        containerColor = cardStyle.chipContainerColor,
-                        contentColor = cardStyle.chipContentColor
-                    )
-                }
-
                 // Fills the row so the chip is pinned to the card edge rather than trailing
                 // a version string of whatever length
                 Text(
@@ -421,7 +361,7 @@ private fun InstalledAppCard(
                     if (item.isDeleted && !item.isInstallStateNotPatched) {
                         StatusBadge(
                             text = deletedLabel,
-                            icon = Icons.Outlined.DeleteOutline,
+                            icon = AppStateIcons.Uninstalled,
                             containerColor = cardStyle.chipContainerColor,
                             contentColor = cardStyle.chipContentColor
                         )
@@ -430,7 +370,7 @@ private fun InstalledAppCard(
                     if (item.isInstallStateNotPatched) {
                         StatusBadge(
                             text = replacementBadgeLabel,
-                            icon = Icons.Outlined.AutoFixHigh,
+                            icon = AppStateIcons.NotPatched,
                             containerColor = cardStyle.chipContainerColor,
                             contentColor = cardStyle.chipContentColor
                         )
@@ -439,7 +379,7 @@ private fun InstalledAppCard(
                     if (item.isInstallStateUnknown) {
                         StatusBadge(
                             text = unverifiedLabel,
-                            icon = Icons.AutoMirrored.Outlined.HelpOutline,
+                            icon = AppStateIcons.Unverified,
                             containerColor = cardStyle.chipContainerColor,
                             contentColor = cardStyle.chipContentColor
                         )
@@ -448,23 +388,7 @@ private fun InstalledAppCard(
                     if (showsPendingBadge.value) {
                         StatusBadge(
                             text = pendingLabel,
-                            icon = Icons.Outlined.HourglassEmpty,
-                            containerColor = cardStyle.chipContainerColor,
-                            contentColor = cardStyle.chipContentColor
-                        )
-                    }
-
-                    // Newer patches and a newer supported app version are both answered by
-                    // rebuilding the app, so one badge stands for either rather than two of
-                    // them stacking into a row that already carries the installed version
-                    AnimatedVisibility(
-                        visible = item.showsRebuildBadge,
-                        enter = Animations.expandHorizFadeIn,
-                        exit = Animations.shrinkHorizFadeOut
-                    ) {
-                        StatusBadge(
-                            text = supportedVersionBadge ?: updateLabel,
-                            icon = Icons.Outlined.ArrowUpward,
+                            icon = AppStateIcons.Pending,
                             containerColor = cardStyle.chipContainerColor,
                             contentColor = cardStyle.chipContentColor
                         )
@@ -481,6 +405,7 @@ private fun InstalledAppCard(
 @Composable
 private fun NotPatchedAppCard(
     item: HomeAppItem,
+    selected: Boolean?,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)?,
     modifier: Modifier = Modifier
@@ -502,6 +427,7 @@ private fun NotPatchedAppCard(
         gradientColors = item.gradientColors,
         onClick = onClick,
         onLongClick = onLongClick,
+        selected = selected,
         modifier = modifier.semantics {
             role = Role.Button
             this.contentDescription = contentDesc
@@ -523,6 +449,10 @@ private fun NotPatchedAppCard(
  * Uses a frosted glass effect built from two passes:
  * - a diagonal sweep carrying the card colors from the bottom-start tint to the top-end accent
  * - a gradient border
+ *
+ * @param selected Whether the card is picked, null outside a selection. Marked at the end of the row.
+ * @param onLongClickLabel What a long press does, announced rather than left as an unlabeled
+ *   action the screen reader cannot describe. On an app card it starts a selection.
  */
 @Composable
 internal fun AppCardLayout(
@@ -530,16 +460,14 @@ internal fun AppCardLayout(
     gradientColors: List<Color>,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String = stringResource(R.string.accessibility_select_app),
+    selected: Boolean? = null,
     content: @Composable RowScope.() -> Unit
 ) {
-    val cardStyle = homeAppCardStyle().onCard(gradientColors)
+    val cardStyle = glassCardStyle().onCard(gradientColors)
     val shape = RoundedCornerShape(cardStyle.cardRadius)
     val view = LocalView.current
-
-    // Long-pressing a card always means the same thing here, so the gesture is announced
-    // rather than left as an unlabeled action the screen reader cannot describe
-    val longClickLabel = stringResource(R.string.accessibility_select_app)
-        .takeIf { onLongClick != null }
+    val longClickLabel = onLongClickLabel.takeIf { onLongClick != null }
 
     val colors = cardStyle.cardColors(gradientColors)
     val baseColor = colors.firstOrNull() ?: Color.White
@@ -594,7 +522,7 @@ internal fun AppCardLayout(
                 // the card colors, which on a single dark color fades into the background and leaves
                 // only the corners lit, so a flat card gets an even edge instead
                 val border = if (colors.all { it == baseColor }) {
-                    SolidColor(cardStyle.titleColor.copy(alpha = 0.30f))
+                    SolidColor(cardStyle.flatEdgeColor)
                 } else {
                     Brush.linearGradient(
                         colors = listOf(
@@ -607,7 +535,7 @@ internal fun AppCardLayout(
                         end   = Offset(endEdgeX(w, rtl), h)
                     )
                 }
-                val borderStroke = Stroke(width = 1.5.dp.toPx())
+                val borderStroke = Stroke(width = CardBorder.Width.toPx())
 
                 onDrawWithContent {
                     drawRoundRect(brush = glass, cornerRadius = cr)
@@ -625,7 +553,8 @@ internal fun AppCardLayout(
             }
             .combinedClickable(
                 interactionSource = interactionSource,
-                indication = null,
+                // A press scales the card instead
+                indication = shapedIndication(shape, press = false),
                 onClick = {
                     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     onClick()
@@ -638,15 +567,19 @@ internal fun AppCardLayout(
                     }
                 } else null
             )
+            .semantics { if (selected != null) this.selected = selected }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = cardStyle.contentPadding),
             horizontalArrangement = Arrangement.spacedBy(cardStyle.contentSpacing),
-            verticalAlignment = Alignment.CenterVertically,
-            content = content
-        )
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            content()
+            // In the card's own text color, which is picked to read on its gradient
+            SelectionMark(selected, ink = cardStyle.titleColor.takeIf { !cardStyle.monochrome })
+        }
     }
 }
 
@@ -682,7 +615,7 @@ fun AppLoadingCard(
         label = "shimmer_offset"
     )
 
-    val cardStyle = homeAppCardStyle().onCard(gradientColors)
+    val cardStyle = glassCardStyle().onCard(gradientColors)
     val shape = RoundedCornerShape(cardStyle.cardRadius)
     val rtl = isRtl()
 
@@ -708,11 +641,10 @@ fun AppLoadingCard(
                         Modifier.background(cardStyle.cardColor)
                     } else {
                         Modifier.background(
-                            brush = Brush.linearGradient(
+                            brush = startToEndGradient(
                                 colors = cardStyle.cardColors(gradientColors)
                                     .map { it.copy(alpha = pulseAlpha) },
-                                start = Offset(startEdgeX(1000f, rtl), 0f),
-                                end = Offset(endEdgeX(1000f, rtl), 0f)
+                                rtl = rtl
                             )
                         )
                     }
@@ -753,7 +685,7 @@ fun AppLoadingCard(
             // Text skeleton
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(cardStyle.textSpacing)
             ) {
                 ShimmerLine(
                     height = titleRowHeight,

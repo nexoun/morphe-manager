@@ -6,10 +6,13 @@
 package app.morphe.manager.ui.screen.home
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import app.morphe.manager.R
+import app.morphe.manager.ui.screen.shared.CommunityPatchesNoticeDialog
 import app.morphe.manager.ui.screen.shared.ConfirmDialog
+import app.morphe.manager.ui.screen.shared.DialogHost
 import app.morphe.manager.util.htmlAnnotatedString
 
 /**
@@ -22,7 +25,7 @@ internal fun HomeAppsSectionDialogs(
     apps: HomeAppListUi,
     appActions: HomeAppActions,
 ) {
-    if (state.showHiddenAppsDialog) {
+    DialogHost(visible = state.showHiddenAppsDialog) {
         HiddenAppsDialog(
             hiddenAppItems = apps.hidden,
             onUnhide = appActions.onUnhideApp,
@@ -34,7 +37,11 @@ internal fun HomeAppsSectionDialogs(
         )
     }
 
-    state.categoryNameRequest?.let { request ->
+    DialogHost(visible = state.showCommunityNotice) {
+        CommunityPatchesNoticeDialog(onDismiss = { state.showCommunityNotice = false })
+    }
+
+    DialogHost(target = state.categoryNameRequest) { request ->
         CategoryNameDialog(
             category = request.category,
             onDismiss = { state.categoryNameRequest = null },
@@ -48,31 +55,32 @@ internal fun HomeAppsSectionDialogs(
     }
 
     // Held in state so the dialog outlives the bar closing on Delete tap
-    state.pendingDeleteCategoryId?.let { pendingId ->
-        val category = apps.categoryState.categories.firstOrNull { it.id == pendingId }
-        if (category == null) {
-            state.pendingDeleteCategoryId = null
-        } else {
-            ConfirmDialog(
-                title = stringResource(R.string.home_category_delete_confirm_title),
-                message = htmlAnnotatedString(
-                    stringResource(
-                        R.string.home_category_delete_confirm_message,
-                        category.name,
-                        stringResource(R.string.home_category_uncategorized)
-                    )
-                ),
-                primaryText = stringResource(R.string.delete),
-                onDismiss = { state.pendingDeleteCategoryId = null },
-                onConfirm = {
-                    appActions.onDeleteCategory(pendingId)
-                    state.pendingDeleteCategoryId = null
-                }
-            )
-        }
+    val pendingDeleteCategory = state.pendingDeleteCategoryId?.let { pendingId ->
+        apps.categoryState.categories.firstOrNull { it.id == pendingId }
+    }
+    // A category gone from under the prompt takes the prompt with it
+    if (state.pendingDeleteCategoryId != null && pendingDeleteCategory == null) {
+        SideEffect { state.pendingDeleteCategoryId = null }
+    }
+    DialogHost(target = pendingDeleteCategory) { category ->
+        ConfirmDialog(
+            title = stringResource(R.string.home_category_delete_title, category.name),
+            message = htmlAnnotatedString(
+                stringResource(
+                    R.string.home_category_delete_moves_apps,
+                    stringResource(R.string.home_category_uncategorized)
+                )
+            ),
+            primaryText = stringResource(R.string.delete),
+            onDismiss = { state.pendingDeleteCategoryId = null },
+            onConfirm = {
+                appActions.onDeleteCategory(category.id)
+                state.pendingDeleteCategoryId = null
+            }
+        )
     }
 
-    if (state.showPatchSourcesDialog) {
+    DialogHost(visible = state.showPatchSourcesDialog) {
         AppPatchSourcesDialog(
             packages = state.selectedPackages.keys.toSet(),
             // Every tap inside has already been applied, so closing is the end of the task rather
@@ -84,7 +92,7 @@ internal fun HomeAppsSectionDialogs(
         )
     }
 
-    if (state.showMoveCategoryDialog) {
+    DialogHost(visible = state.showMoveCategoryDialog) {
         MoveToCategoryDialog(
             categories = apps.categoryState.categories,
             onDismiss = { state.showMoveCategoryDialog = false },
@@ -104,7 +112,7 @@ internal fun HomeAppsSectionDialogs(
         )
     }
 
-    if (state.showBatchUninstallConfirm) {
+    DialogHost(visible = state.showBatchUninstallConfirm) {
         val pendingItems = state.pendingUninstallItems
         ConfirmDialog(
             title = pluralStringResource(

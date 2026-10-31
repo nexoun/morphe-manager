@@ -6,19 +6,9 @@
 package app.morphe.manager.ui.screen.home
 
 import android.graphics.drawable.Drawable
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Restore
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -39,14 +29,18 @@ import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.screen.shared.colorpicker.ColorPresetGrid
 import app.morphe.manager.ui.screen.shared.colorpicker.ColorPresetSwatch
 import app.morphe.manager.util.*
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 import kotlinx.collections.immutable.ImmutableList
 import kotlin.math.roundToInt
+import kotlin.reflect.KClass
+import kotlin.reflect.KType
 
 /**
  * Represents the resolved UI kind of patch option.
  * Used to drive an exhaustive when-expression in [PatchOptionEditor].
  */
-private sealed interface OptionKind {
+internal sealed interface OptionKind {
     data object StringList      : OptionKind
     data object Color           : OptionKind
     data object PathWithPresets : OptionKind
@@ -80,7 +74,7 @@ private sealed interface OptionKind {
  * Resolves the [OptionKind] for a given [option] and its current [value].
  * All type-detection heuristics live here, keeping the UI when-expression clean and exhaustive.
  */
-private fun resolveOptionKind(option: Option<*>, value: Any?): OptionKind {
+internal fun resolveOptionKind(option: Option<*>, value: Any?): OptionKind {
     // Typed options dispatch to their dedicated picker Kind. Untyped string options
     // fall through to the heuristics below and render with the classic text field.
     option.explicitKind?.let { kind ->
@@ -100,13 +94,13 @@ private fun resolveOptionKind(option: Option<*>, value: Any?): OptionKind {
         if (explicit != null) return explicit
     }
 
-    val t        = option.type.toString()
-    val isArray  = t.contains("Array")
-    val isString = t.contains("String") && !isArray
+    val type     = option.type
+    val isArray  = type.mentions { it.java.isArray }
+    val isString = type.mentions(String::class) && !isArray
 
     return when {
         // List<String> free-form comma-separated input
-        t.contains("List") && t.contains("String") -> OptionKind.StringList
+        type.mentions(List::class) && type.mentions(String::class) -> OptionKind.StringList
 
         // Color: string whose key/title hints "color" or value looks like a color literal
         isString && (
@@ -151,13 +145,13 @@ private fun resolveOptionKind(option: Option<*>, value: Any?): OptionKind {
         isString -> OptionKind.StringText
 
         // Boolean toggle
-        t.contains("Boolean") -> OptionKind.BooleanToggle
+        type.mentions(Boolean::class) -> OptionKind.BooleanToggle
 
         // Integer / Long numeric input
-        (t.contains("Int") || t.contains("Long")) && !isArray -> OptionKind.IntLong
+        (type.mentions(Int::class) || type.mentions(Long::class)) && !isArray -> OptionKind.IntLong
 
         // Float / Double decimal input
-        (t.contains("Float") || t.contains("Double")) && !isArray -> OptionKind.FloatDouble
+        (type.mentions(Float::class) || type.mentions(Double::class)) && !isArray -> OptionKind.FloatDouble
 
         // Array: dropdown driven by presets
         isArray -> OptionKind.ArrayDropdown
@@ -166,6 +160,18 @@ private fun resolveOptionKind(option: Option<*>, value: Any?): OptionKind {
         else -> OptionKind.StringText
     }
 }
+
+/**
+ * Whether this type or one of its type arguments, at any depth, is a class [predicate] accepts.
+ * Asks the classifiers rather than the name of the type, which reads differently without full
+ * Kotlin reflection.
+ */
+private fun KType.mentions(predicate: (KClass<*>) -> Boolean): Boolean =
+    (classifier as? KClass<*>)?.let(predicate) == true ||
+            arguments.any { argument -> argument.type?.mentions(predicate) == true }
+
+/** Whether this type or one of its type arguments, at any depth, is [kClass]. */
+private fun KType.mentions(kClass: KClass<*>) = mentions { it == kClass }
 
 /**
  * A stored range option value read back as a range. Range options hold a two element list,
@@ -209,7 +215,7 @@ private fun optionValueEquals(a: Any?, b: Any?): Boolean = when {
  * @param accentColor Color of that app, which tints the header band.
  */
 @Composable
-internal fun PatchOptionsDialog(
+internal fun DialogHostScope.PatchOptionsDialog(
     patch: PatchInfo,
     packageName: String,
     appName: String,
@@ -228,11 +234,30 @@ internal fun PatchOptionsDialog(
     val anyChanged = options.any { !optionValueEquals(valueOf(it), it.default) }
 
     val showColorPicker = remember { mutableStateOf<Pair<String, String>?>(null) }
-    val scrollState = rememberScrollState()
-
-    AppDialog(
+    ListDialog(
         onDismissRequest = onDismiss,
         accentColor = accentColor,
+        header = {
+            ListDialogHeader(
+                icon = { modifier ->
+                    AppIcon(packageName = packageName, icon = appIcon, contentDescription = null, modifier = modifier)
+                },
+                title = patch.displayName,
+                subtitle = listOf(
+                    appName,
+                    pluralStringResource(R.plurals.option_count, options.size, options.size.toString())
+                ).joinToString(" · "),
+                alwaysShowBand = true
+            ) {
+                TitleAction(
+                    icon = MaterialSymbols.Rounded.History,
+                    contentDescription = stringResource(R.string.reset),
+                    onClick = onReset,
+                    style = TitleActionStyle.Accent,
+                    enabled = anyChanged
+                )
+            }
+        },
         footer = {
             AppDialogOutlinedButton(
                 text = stringResource(R.string.close),
@@ -240,40 +265,14 @@ internal fun PatchOptionsDialog(
                 modifier = Modifier.fillMaxWidth()
             )
         },
-        padding = DialogPadding.Compact,
-        scrollable = false,
-        contentArrangement = Arrangement.Top,
-        fillContentHeight = true,
         hideFooterWhileTyping = true
     ) {
-        ListDialogHeader(
-            icon = { modifier ->
-                AppIcon(packageName = packageName, icon = appIcon, contentDescription = null, modifier = modifier)
-            },
-            title = patch.displayName,
-            subtitle = listOf(
-                appName,
-                pluralStringResource(R.plurals.option_count, options.size, options.size.toString())
-            ).joinToString(" · ")
-        ) {
-            TitleAction(
-                icon = Icons.Outlined.Restore,
-                contentDescription = stringResource(R.string.reset),
-                onClick = onReset,
-                style = TitleActionStyle.Accent,
-                enabled = anyChanged
-            )
-        }
-
-        Column(
+        DialogScrollColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
-                .verticalScrollFade(scrollState)
-                .verticalScroll(scrollState)
-                .padding(vertical = Defaults.ItemSpacing),
+                .weight(1f),
             // Spaced as the patch list the dialog opens from
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
         ) {
             // What the patch does leads into its options
             if (!patch.description.isNullOrBlank()) {
@@ -284,7 +283,7 @@ internal fun PatchOptionsDialog(
                 )
             }
 
-            options.forEach { option ->
+            val editor: @Composable (Option<*>) -> Unit = { option ->
                 val value = valueOf(option)
                 PatchOptionEditor(
                     option = option,
@@ -305,11 +304,20 @@ internal fun PatchOptionsDialog(
                     onCustomColorClick = { showColorPicker.value = option.key to it }
                 )
             }
+            // Switches stand together as one segmented group, as the settings keep theirs, while
+            // every other option keeps a card of its own
+            options.runsBy { resolveOptionKind(it, valueOf(it)) == OptionKind.BooleanToggle }.forEach { (toggles, run) ->
+                if (toggles && run.size > 1) {
+                    SettingsGroup { run.forEach { editor(it) } }
+                } else {
+                    run.forEach { editor(it) }
+                }
+            }
         }
     }
 
     // Color picker dialog
-    showColorPicker.value?.let { (key, currentColor) ->
+    DialogHost(target = showColorPicker.value) { (key, currentColor) ->
         ColorPickerDialog(
             title = options.find { it.key == key }?.title ?: key,
             currentColor = currentColor,
@@ -320,6 +328,17 @@ internal fun PatchOptionsDialog(
             onDismiss = { showColorPicker.value = null }
         )
     }
+}
+
+/** This list cut into runs of neighbors that agree on [key], each run with the key it shares. */
+private fun <T, K> List<T>.runsBy(key: (T) -> K): List<Pair<K, List<T>>> {
+    val runs = mutableListOf<Pair<K, MutableList<T>>>()
+    forEach { item ->
+        val k = key(item)
+        val last = runs.lastOrNull()
+        if (last != null && last.first == k) last.second.add(item) else runs.add(k to mutableListOf(item))
+    }
+    return runs
 }
 
 /**
@@ -564,14 +583,16 @@ private fun ColorOptionWithPresets(
     val isCustom = entries.none { (_, preset) -> preset == value }
 
     OptionCard(heading) {
-        // The choices the app gives everywhere, one card to a named preset, named in the type of
+        // The choices the app gives everywhere, one row to a named preset, named in the type of
         // the option cards they sit in
-        named.forEach { (label, preset) ->
-            RadioSelectionCard(
-                selected = preset == value,
-                onSelect = { onPresetSelect(preset) }
-            ) {
-                CardHeadingText(name = label, description = null, modifier = Modifier.weight(1f))
+        SettingsGroup {
+            named.forEach { (label, preset) ->
+                RadioSelectionCard(
+                    selected = preset == value,
+                    onSelect = { onPresetSelect(preset) }
+                ) {
+                    CardHeadingText(name = label, description = null, modifier = Modifier.weight(1f))
+                }
             }
         }
 
@@ -591,28 +612,18 @@ private fun ColorOptionWithPresets(
                 onCustomClick = onCustomColorClick
             )
 
-            AnimatedVisibility(
-                visible = swatchName != null,
-                enter = Animations.expandFadeEnter,
-                exit = Animations.shrinkFadeExit
-            ) {
-                AnimatedContent(
-                    targetState = swatchName ?: lastSwatchName,
-                    transitionSpec = Animations.fadeCrossfade(),
+            FoldingVisibility(visible = swatchName != null) {
+                CrossfadeText(
+                    text = swatchName ?: lastSwatchName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = dialogTextColor(),
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = Defaults.ItemSpacing),
+                        .padding(top = Defaults.SpaceMedium),
                     label = "colorOptionSwatchName"
-                ) { name ->
-                    Text(
-                        text = name,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = dialogTextColor(),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                )
             }
         }
     }
@@ -784,7 +795,7 @@ private fun ListStringInputOption(
     OptionCard(heading) {
         if (value.isNotEmpty()) {
             // A chip already keeps a touch target's height around it, which spaces the lines
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)) {
                 value.forEachIndexed { index, item ->
                     AppInputChip(
                         label = item,
@@ -795,7 +806,7 @@ private fun ListStringInputOption(
         }
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+            horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
             AppDialogTextField(
@@ -815,7 +826,7 @@ private fun ListStringInputOption(
                 modifier = Modifier.weight(1f)
             )
             TitleAction(
-                icon = Icons.Outlined.Add,
+                icon = MaterialSymbols.Rounded.Add,
                 contentDescription = stringResource(R.string.add),
                 onClick = ::addInput,
                 style = TitleActionStyle.Accent
@@ -857,7 +868,7 @@ private fun FilePickerOption(
         PickerButtonRow(
             label = stringResource(R.string.select_file),
             selectedPath = value,
-            icon = Icons.AutoMirrored.Outlined.InsertDriveFile,
+            icon = MaterialSymbols.Rounded.Draft.autoMirrored,
             onPick = { filePicker() },
             onClear = { onValueChange("") },
         )
@@ -890,7 +901,7 @@ private fun ImageInputOption(
         PickerButtonRow(
             label = stringResource(R.string.adaptive_icon_select_image),
             selectedPath = value,
-            icon = Icons.Outlined.Image,
+            icon = MaterialSymbols.Rounded.Image,
             onPick = { filePicker() },
             onClear = { onValueChange("") },
         )

@@ -15,6 +15,7 @@ import app.morphe.manager.domain.batch.BatchPatchCoordinator
 import app.morphe.manager.domain.batch.BatchPlanResolver
 import app.morphe.manager.domain.batch.BatchTarget
 import app.morphe.manager.domain.manager.PreferencesManager
+import app.morphe.manager.ui.model.SourceScope
 import kotlinx.coroutines.launch
 
 class MainViewModel(
@@ -72,6 +73,9 @@ class MainViewModel(
 
     /** Package a per-app launcher shortcut wants the patch dialog opened for. */
     var pendingPatchPackage: String? by mutableStateOf(null)
+
+    /** Package a notification wants the app info dialog opened for. */
+    var pendingAppInfoPackage: String? by mutableStateOf(null)
 
     /** Set when an automatic re-patch notification asks to reopen its queue. */
     var pendingBatchResult by mutableStateOf(false)
@@ -164,7 +168,12 @@ class MainViewModel(
         approvedBatchPatch = null
     }
 
-    data class DeepLinkSource(val url: String, val name: String?)
+    /** A source a link asks to add, as much of it as [scope] says. */
+    data class DeepLinkSource(
+        val url: String,
+        val name: String?,
+        val scope: SourceScope = SourceScope.Whole
+    )
 
     /**
      * A batch patch run requested through [app.morphe.manager.MainActivity.ACTION_BATCH_PATCH].

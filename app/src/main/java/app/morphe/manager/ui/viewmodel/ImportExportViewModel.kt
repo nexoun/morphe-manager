@@ -11,11 +11,8 @@
 package app.morphe.manager.ui.viewmodel
 
 import android.app.Application
-import android.content.ContentValues
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import android.util.Log
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -23,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.morphe.manager.BuildConfig
 import app.morphe.manager.R
 import app.morphe.manager.domain.manager.HomeAppButtonPreferences
 import app.morphe.manager.domain.manager.KeystoreManager
@@ -32,10 +30,14 @@ import app.morphe.manager.domain.manager.SigningKeyInfo
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.domain.repository.PatchOptionsRepository
 import app.morphe.manager.domain.repository.PatchSelectionRepository
+import app.morphe.manager.domain.repository.SelectionSetRepository
 import app.morphe.manager.domain.repository.SourceMuteRepository
+import app.morphe.manager.domain.repository.StoredSelectionSet
+import app.morphe.manager.ui.screen.shared.UserMessages
 import app.morphe.manager.util.*
 import com.github.pgreze.process.Redirect
 import com.github.pgreze.process.process
+import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
@@ -50,8 +52,6 @@ import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.encodeToStream
 import java.io.BufferedWriter
 import java.io.File
-import java.io.FileOutputStream
-import java.io.OutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -90,7 +90,10 @@ data class PatchBundleDataExportFile(
     val options: Map<String, Map<String, Map<String, String>>>?,
     // Apps kept from this source. Null in backups written before an app could be, which reads the
     // same as a backup where no app was
-    val mutedPackages: List<String>? = null
+    val mutedPackages: List<String>? = null,
+    // Apps the source has listed so far, present only when it leaves new apps out. Null in backups
+    // written before a source could, which reads as a source that brings them
+    val knownApps: List<String>? = null
 )
 
 /**
@@ -101,7 +104,29 @@ data class PatchBundleDataExportFile(
 data class AllSelectionsExportFile(
     val version: Int = 1,
     val exportDate: String,
-    val bundles: List<PatchBundleDataExportFile>
+    val bundles: List<PatchBundleDataExportFile>,
+    // Null in backups written before sets could be kept, which leaves the sets on the device alone
+    val sets: List<SelectionSetExportFile>? = null
+)
+
+/** A set kept for one app, see [SelectionSetRepository], as a backup carries it. */
+@Serializable
+data class SelectionSetExportFile(
+    val packageName: String,
+    val name: String,
+    val sources: List<SelectionSetSourceExport>
+)
+
+/** What a [SelectionSetExportFile] holds of one source. */
+@Serializable
+data class SelectionSetSourceExport(
+    val bundleUid: Int,
+    // Normalized endpoint URL, which the source is found by on another device, as with the
+    // bundleSource of a PatchBundleDataExportFile
+    val bundleSource: String? = null,
+    val patches: List<String>,
+    // Map<PatchName, Map<OptionKey, OptionValue>>
+    val options: Map<String, Map<String, String>>? = null
 )
 
 /**
@@ -113,6 +138,8 @@ data class BundleSnapshot(
     val name: String,
     val displayName: String? = null,
     val source: String,
+    // Every remote source updates on its own, so this is ignored on import. Still written, as
+    // older manager versions require it to read the file
     val autoUpdate: Boolean,
     val enabled: Boolean = true,
     val sortOrder: Int,
@@ -127,12 +154,14 @@ data class BundleSnapshot(
 @OptIn(ExperimentalSerializationApi::class)
 class ImportExportViewModel(
     private val app: Application,
+    private val messages: UserMessages,
     private val keystoreManager: KeystoreManager,
     private val preferencesManager: PreferencesManager,
     private val homeAppButtonPreferences: HomeAppButtonPreferences,
     private val patchSelectionRepository: PatchSelectionRepository,
     private val sourceMuteRepository: SourceMuteRepository,
     private val patchOptionsRepository: PatchOptionsRepository,
+    private val selectionSetRepository: SelectionSetRepository,
     private val patchBundleRepository: PatchBundleRepository
 ) : ViewModel() {
     private val contentResolver = app.contentResolver
@@ -164,7 +193,7 @@ class ImportExportViewModel(
     }
 
     fun startKeystoreImport(content: Uri) = viewModelScope.launch {
-        uiSafe(app, R.string.settings_system_import_keystore_failed, "Failed to import keystore") {
+        messages.reportingFailure(R.string.settings_system_import_keystore_failed, "Failed to import keystore") {
             val path = withContext(Dispatchers.IO) {
                 File.createTempFile("signing", "ks", app.cacheDir).toPath().also {
                     Files.copy(
@@ -182,10 +211,12 @@ class ImportExportViewModel(
                     stream.read(buf)
                     buf
                 }
+                // The shown name, as a document URI's last segment is an id without an extension
                 KeystoreInputFormat.detectFromBytes(header)
-            } ?: run {
-                val ext = content.lastPathSegment?.substringAfterLast('.')?.lowercase() ?: ""
-                KeystoreInputFormat.fromExtension(ext) ?: KeystoreInputFormat.PKCS12
+                    ?: KeystoreInputFormat.fromExtension(
+                        content.displayName(contentResolver)?.substringAfterLast('.', "").orEmpty()
+                    )
+                    ?: KeystoreInputFormat.PKCS12
             }
             keystoreImportFormat = detectedFormat
 
@@ -230,8 +261,10 @@ class ImportExportViewModel(
         return try {
             val imported = keystoreManager.import(alias, pass, keystorePw, bksBytes.inputStream())
             if (imported) {
-                app.toast(app.getString(R.string.settings_system_import_keystore_success))
-                cancelKeystoreImport()
+                messages.show(R.string.settings_system_import_keystore_success)
+                // The copy holds the private key, and an automatic import never recorded its path
+                withContext(Dispatchers.IO) { Files.deleteIfExists(path) }
+                keystoreImportPath = null
                 refreshSigningKey()
             }
             imported
@@ -241,11 +274,11 @@ class ImportExportViewModel(
     }
 
     fun exportKeystore(target: Uri) = viewModelScope.launch {
-        uiSafe(app, R.string.settings_system_export_keystore_failed, "Failed to export keystore") {
+        messages.reportingFailure(R.string.settings_system_export_keystore_failed, "Failed to export keystore") {
             withContext(Dispatchers.IO) {
                 keystoreManager.export(contentResolver.openOutputStream(target)!!)
             }
-            app.toast(app.getString(R.string.settings_system_export_keystore_success))
+            messages.show(R.string.settings_system_export_keystore_success)
         }
     }
 
@@ -253,7 +286,10 @@ class ImportExportViewModel(
         source: Uri,
         mode: PatchBundleRepository.ImportMode = PatchBundleRepository.ImportMode.Merge,
     ) = viewModelScope.launch {
-        uiSafe(app, R.string.settings_system_import_manager_settings_fail, "Failed to import manager settings") {
+        messages.reportingFailure(
+            R.string.settings_system_import_manager_settings_fail,
+            "Failed to import manager settings"
+        ) {
             val exportFile = withContext(Dispatchers.IO) {
                 contentResolver.openInputStream(source)!!.use {
                     settingsJson.decodeFromStream<ManagerSettingsExportFile>(it)
@@ -278,10 +314,10 @@ class ImportExportViewModel(
             // After the sources, so selections made against a source the backup brought back
             // find it in place
             if (SettingsSection.PATCH_SELECTIONS in sections) {
-                exportFile.selections?.let { importSelectionBundles(it.bundles, mode) }
+                exportFile.selections?.let { importSelectionBundles(it.bundles, it.sets, mode) }
             }
 
-            app.toast(app.getString(R.string.settings_system_import_manager_settings_success))
+            messages.show(R.string.settings_system_import_manager_settings_success)
         }
     }
 
@@ -302,7 +338,10 @@ class ImportExportViewModel(
     }
 
     fun exportManagerSettings(target: Uri) = viewModelScope.launch {
-        uiSafe(app, R.string.settings_system_export_manager_settings_fail, "Failed to export manager settings") {
+        messages.reportingFailure(
+            R.string.settings_system_export_manager_settings_fail,
+            "Failed to export manager settings"
+        ) {
             val exportFile = managerSettingsExportFile()
             withContext(Dispatchers.IO) {
                 contentResolver.openOutputStream(target, "wt")!!.use { output ->
@@ -310,7 +349,7 @@ class ImportExportViewModel(
                 }
             }
 
-            app.toast(app.getString(R.string.settings_system_export_manager_settings_success))
+            messages.show(R.string.settings_system_export_manager_settings_success)
         }
     }
 
@@ -323,7 +362,7 @@ class ImportExportViewModel(
         bundleName: String?,
         target: Uri
     ) = viewModelScope.launch {
-        uiSafe(app, R.string.settings_system_export_source_data_fail, "Failed to export source data") {
+        messages.reportingFailure(R.string.settings_system_export_source_data_fail, "Failed to export source data") {
             val (selections, optionsData) = withContext(Dispatchers.IO) {
                 val patchList = patchSelectionRepository.exportForPackageAndBundle(
                     packageName,
@@ -364,7 +403,7 @@ class ImportExportViewModel(
                 }
             }
 
-            app.toast(app.getString(R.string.settings_system_export_source_data_success))
+            messages.show(R.string.settings_system_export_source_data_success)
         }
     }
 
@@ -372,7 +411,7 @@ class ImportExportViewModel(
      * Export all patch selections and options across all bundles into a single file.
      */
     fun exportAllSelections(target: Uri) = viewModelScope.launch {
-        uiSafe(app, R.string.settings_system_export_source_data_fail, "Failed to export selections") {
+        messages.reportingFailure(R.string.settings_system_export_source_data_fail, "Failed to export selections") {
             val exportFile = allSelectionsExportFile()
 
             withContext(Dispatchers.IO) {
@@ -381,11 +420,11 @@ class ImportExportViewModel(
                 }
             }
 
-            app.toast(app.getString(R.string.settings_system_export_source_data_success))
+            messages.show(R.string.settings_system_export_source_data_success)
         }
     }
 
-    /** Every source's patch selections, options and kept apps, as one export. */
+    /** Every source's patch selections, options and kept apps, and every set, as one export. */
     private suspend fun allSelectionsExportFile(): AllSelectionsExportFile {
         val exportDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(LocalDateTime.now())
 
@@ -412,14 +451,34 @@ class ImportExportViewModel(
                     exportDate = exportDate,
                     selections = selections,
                     options = options.ifEmpty { null },
-                    mutedPackages = sourceMuteRepository.exportForBundle(bundleUid).ifEmpty { null }
+                    mutedPackages = sourceMuteRepository.exportForBundle(bundleUid).ifEmpty { null },
+                    knownApps = sourceMuteRepository.exportKnownApps(bundleUid)
                 )
-            }.filter { it.selections.isNotEmpty() || it.mutedPackages != null }
+            }.filter { it.selections.isNotEmpty() || it.mutedPackages != null || it.knownApps != null }
+        }
+
+        val sets = withContext(Dispatchers.IO) {
+            selectionSetRepository.exportAll().map { set ->
+                SelectionSetExportFile(
+                    packageName = set.packageName,
+                    name = set.name,
+                    sources = (set.patches.keys + set.options.keys).map { bundleUid ->
+                        SelectionSetSourceExport(
+                            bundleUid = bundleUid,
+                            bundleSource = patchBundleRepository.getEndpointForUid(bundleUid),
+                            patches = set.patches[bundleUid].orEmpty(),
+                            options = set.options[bundleUid]
+                        )
+                    }
+                )
+            }
         }
 
         return AllSelectionsExportFile(
             exportDate = exportDate,
-            bundles = bundles
+            bundles = bundles,
+            // Written even when empty, so a backup restored in Replace mode clears the sets it lacks
+            sets = sets
         )
     }
 
@@ -443,7 +502,7 @@ class ImportExportViewModel(
         source: Uri,
         mode: PatchBundleRepository.ImportMode = PatchBundleRepository.ImportMode.Merge,
     ) = viewModelScope.launch {
-        uiSafe(app, R.string.settings_system_import_source_data_fail, "Failed to import selections") {
+        messages.reportingFailure(R.string.settings_system_import_source_data_fail, "Failed to import selections") {
             val bytes = withContext(Dispatchers.IO) {
                 contentResolver.openInputStream(source)!!.use { it.readBytes() }
             }
@@ -454,37 +513,35 @@ class ImportExportViewModel(
                 element.containsKey("bundles")
             }
 
-            val bundleFiles: List<PatchBundleDataExportFile> = withContext(Dispatchers.IO) {
+            // A file of one source's selections carries no sets
+            val (bundleFiles, sets) = withContext(Dispatchers.IO) {
                 if (isAllSelections) {
-                    json.decodeFromString<AllSelectionsExportFile>(bytes.decodeToString()).bundles
+                    json.decodeFromString<AllSelectionsExportFile>(bytes.decodeToString()).let { it.bundles to it.sets }
                 } else {
-                    listOf(json.decodeFromString<PatchBundleDataExportFile>(bytes.decodeToString()))
+                    listOf(json.decodeFromString<PatchBundleDataExportFile>(bytes.decodeToString())) to null
                 }
             }
 
-            importSelectionBundles(bundleFiles, mode)
+            importSelectionBundles(bundleFiles, sets, mode)
 
-            app.toast(app.getString(R.string.settings_system_import_source_data_success))
+            messages.show(R.string.settings_system_import_source_data_success)
         }
     }
 
     /**
-     * Applies exported selections onto this device's sources, the way [importAllSelections]
-     * describes for [mode].
+     * Applies exported selections and [sets] onto this device's sources, the way
+     * [importAllSelections] describes for [mode]. Null [sets], from a backup older than sets, leave
+     * the sets on the device alone.
      */
     private suspend fun importSelectionBundles(
         bundleFiles: List<PatchBundleDataExportFile>,
+        sets: List<SelectionSetExportFile>?,
         mode: PatchBundleRepository.ImportMode
     ) {
         withContext(Dispatchers.IO) {
             // Remap exported UIDs to current-device UIDs. Bundle UIDs are randomly generated
             // per device so the raw exported value only matches on the origin device
-            val remapped = bundleFiles.map { file ->
-                val uid = file.bundleSource
-                    ?.let { patchBundleRepository.resolveUidForEndpoint(it) }
-                    ?: file.bundleUid
-                file to uid
-            }
+            val remapped = bundleFiles.map { file -> file to localUid(file.bundleUid, file.bundleSource) }
             val incomingUids = remapped
                 .map { it.second }
                 .filter { patchBundleRepository.isUidLoaded(it) }
@@ -523,7 +580,8 @@ class ImportExportViewModel(
                         }
                         sourceMuteRepository.importForBundle(
                             bundleUid,
-                            exportFile.mutedPackages.orEmpty()
+                            exportFile.mutedPackages.orEmpty(),
+                            exportFile.knownApps
                         )
                     }
                     PatchBundleRepository.ImportMode.Merge -> {
@@ -541,20 +599,54 @@ class ImportExportViewModel(
                                 options = packageOptions
                             )
                         }
-                        exportFile.mutedPackages?.let {
-                            sourceMuteRepository.muteApps(bundleUid, it)
-                        }
+                        sourceMuteRepository.mergeForBundle(
+                            bundleUid,
+                            exportFile.mutedPackages.orEmpty(),
+                            exportFile.knownApps
+                        )
                     }
                 }
             }
+
+            if (sets != null) importSets(sets, mode)
         }
     }
+
+    /**
+     * Restores [sets], each on the sources this device has of it. In Replace mode the sets on the
+     * device go first. A set none of whose sources are here is left out rather than kept empty.
+     */
+    private suspend fun importSets(sets: List<SelectionSetExportFile>, mode: PatchBundleRepository.ImportMode) {
+        if (mode == PatchBundleRepository.ImportMode.Replace) selectionSetRepository.reset()
+
+        sets.forEach { set ->
+            // A set refers to its sources, so one this device does not have cannot be kept
+            val sources = set.sources.mapNotNull { source ->
+                val uid = localUid(source.bundleUid, source.bundleSource)
+                if (patchBundleRepository.isUidLoaded(uid)) uid to source else null
+            }
+            if (sources.isEmpty() && set.sources.isNotEmpty()) return@forEach
+
+            selectionSetRepository.import(
+                StoredSelectionSet(
+                    packageName = set.packageName,
+                    name = set.name,
+                    patches = sources.associate { (uid, source) -> uid to source.patches },
+                    options = sources.mapNotNull { (uid, source) -> source.options?.let { uid to it } }.toMap()
+                )
+            )
+        }
+    }
+
+    /** The uid on this device of a source exported as [bundleUid] from [bundleSource]. */
+    private fun localUid(bundleUid: Int, bundleSource: String?): Int =
+        bundleSource?.let { patchBundleRepository.resolveUidForEndpoint(it) } ?: bundleUid
 
     /**
      * Get filename for package+bundle data export.
      */
     fun getPackageBundleDataExportFileName(packageName: String, bundleUid: Int, bundleName: String?): String {
-        val bundle = bundleName?.replace(" ", "_")?.take(20) ?: "bundle_$bundleUid"
+        val bundle = bundleName?.let { FilenameUtils.sanitize(it).take(20) }?.ifEmpty { null } ?: "bundle_$bundleUid"
         val pkg = packageName.substringAfterLast('.').take(15)
         return FilenameUtils.timestamped("morphe_${bundle}_${pkg}.json")
     }
@@ -568,13 +660,9 @@ class ImportExportViewModel(
      * Shared by [exportDebugLogs].
      */
     private suspend fun writeDebugLogContent(writer: BufferedWriter): Int = withContext(Dispatchers.IO) {
-        val versionName = runCatching {
-            app.packageManager.getPackageInfo(app.packageName, 0).versionName
-        }.getOrDefault("unknown")
-
         writer.write("=== Morphe Manager Debug Log ===\n")
         writer.write("Date       : ${LocalDateTime.now()}\n")
-        writer.write("Version    : $versionName\n")
+        writer.write("Version    : ${BuildConfig.VERSION_NAME}\n")
 
         writer.write("\n--- Device ---\n")
         writer.write("Model      : ${Build.MANUFACTURER} ${Build.MODEL}\n")
@@ -609,10 +697,8 @@ class ImportExportViewModel(
         }
 
         writer.write("\n--- Environment ---\n")
-        val hasRoot = runCatching {
-            Runtime.getRuntime().exec(arrayOf("su", "-c", "id")).waitFor() == 0
-        }.getOrDefault(false)
-        writer.write("Root access: $hasRoot\n")
+        // Read without asking, as su would raise the root prompt and wait for it unanswered
+        writer.write("Root access: ${Shell.isAppGrantedRoot() ?: "not checked"}\n")
 
         writer.write("\n=== Logcat ===\n\n")
 
@@ -638,79 +724,14 @@ class ImportExportViewModel(
             throw e
         } catch (e: Exception) {
             Log.e(tag, "Got exception while exporting logs", e)
-            app.toast(app.getString(R.string.settings_system_export_debug_logs_export_failed))
+            messages.show(R.string.settings_system_export_debug_logs_export_failed)
             return@launch
         }
 
         if (exitCode == 0)
-            app.toast(app.getString(R.string.settings_system_export_debug_logs_export_success))
+            messages.show(R.string.settings_system_export_debug_logs_export_success)
         else {
-            app.toast(app.getString(R.string.settings_system_export_debug_logs_export_read_failed).format(exitCode))
-        }
-    }
-
-    /**
-     * Opens a writable [OutputStream] to a new file in the public Downloads folder.
-     * Used as a fallback on Android TV where [android.content.Intent.ACTION_CREATE_DOCUMENT] is unavailable.
-     * On API 29+ uses [MediaStore] (no storage permission required).
-     * On older versions falls back to [Environment.getExternalStoragePublicDirectory].
-     */
-    private fun openDownloadsOutputStream(fileName: String, mimeType: String): OutputStream? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val values = ContentValues().apply {
-                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                put(MediaStore.Downloads.MIME_TYPE, mimeType)
-                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-            }
-            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                ?: return null
-            contentResolver.openOutputStream(uri)
-        } else {
-            @Suppress("DEPRECATION")
-            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            dir.mkdirs()
-            FileOutputStream(File(dir, fileName))
-        }
-    }
-
-    /**
-     * Exports the keystore to the Downloads folder.
-     */
-    fun exportKeystoreToDownloads() = viewModelScope.launch {
-        uiSafe(app, R.string.settings_system_export_keystore_failed, "Failed to export keystore to Downloads") {
-            withContext(Dispatchers.IO) {
-                val stream = openDownloadsOutputStream("Morphe.keystore", BIN_MIMETYPE)
-                    ?: throw IllegalStateException("Cannot open Downloads output stream")
-                stream.use { keystoreManager.export(it) }
-            }
-            app.toast(app.getString(R.string.settings_system_export_keystore_success))
-        }
-    }
-
-    /**
-     * Exports manager settings to the Downloads folder.
-     */
-    fun exportManagerSettingsToDownloads() = viewModelScope.launch {
-        uiSafe(app, R.string.settings_system_export_manager_settings_fail, "Failed to export settings to Downloads") {
-            val exportFile = managerSettingsExportFile()
-            withContext(Dispatchers.IO) {
-                val stream = openDownloadsOutputStream("morphe_manager_settings.json", JSON_MIMETYPE)
-                    ?: throw IllegalStateException("Cannot open Downloads output stream")
-                stream.use { settingsJson.encodeToStream(exportFile, it) }
-            }
-            app.toast(app.getString(R.string.settings_system_export_manager_settings_success))
-        }
-    }
-
-    /**
-     * Exports debug logs to the Downloads folder.
-     */
-    fun exportDebugLogsToDownloads() = viewModelScope.launch {
-        uiSafe(app, R.string.settings_system_export_debug_logs_export_failed, "Failed to export debug logs to Downloads") {
-            val stream = openDownloadsOutputStream(debugLogFileName, TEXT_MIMETYPE)
-                ?: throw IllegalStateException("Cannot open Downloads output stream")
-            stream.bufferedWriter().use { writer -> writeDebugLogContent(writer) }
-            app.toast(app.getString(R.string.settings_system_export_debug_logs_export_success))
+            messages.show(app.getString(R.string.settings_system_export_debug_logs_export_read_failed).format(exitCode))
         }
     }
 

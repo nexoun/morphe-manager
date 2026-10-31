@@ -30,8 +30,6 @@ import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.io.File
 import java.io.IOException
 import java.net.URLEncoder
@@ -45,6 +43,14 @@ data class PatchBundleDownloadResult(
 
 typealias PatchBundleDownloadProgress = (bytesRead: Long, bytesTotal: Long?) -> Unit
 
+/** What a remote bundle reaches its source with, handed to it by whoever builds the bundle. */
+class RemoteBundleServices(
+    val http: HttpService,
+    val api: MorpheAPI,
+    val assetDownloader: AssetDownloader,
+    val prefs: PreferencesManager
+)
+
 sealed class RemotePatchBundle(
     name: String,
     uid: Int,
@@ -55,37 +61,27 @@ sealed class RemotePatchBundle(
     error: Throwable?,
     directory: File,
     val endpoint: String,
-    val autoUpdate: Boolean,
     enabled: Boolean,
-) : PatchBundleSource(name, uid, displayName, createdAt, updatedAt, error, directory, enabled), KoinComponent {
-    protected val http: HttpService by inject()
-    protected val api: MorpheAPI by inject()
-    private val assetDownloader: AssetDownloader by inject()
+    protected val services: RemoteBundleServices,
+) : PatchBundleSource(name, uid, displayName, createdAt, updatedAt, error, directory, enabled) {
+    protected val http = services.http
+    protected val api = services.api
+    private val refusedReleaseFile = directory.resolve("refused-release")
 
     protected abstract suspend fun getLatestInfo(): MorpheAsset
-    abstract fun copy(
-        error: Throwable? = this.error,
-        name: String = this.name,
-        displayName: String? = this.displayName,
-        createdAt: Long? = this.createdAt,
-        updatedAt: Long? = this.updatedAt,
-        autoUpdate: Boolean = this.autoUpdate,
-        enabled: Boolean = this.enabled
-    ): RemotePatchBundle
-
-    override fun copy(
+    abstract override fun copy(
         error: Throwable?,
         name: String,
         displayName: String?,
         createdAt: Long?,
         updatedAt: Long?,
         enabled: Boolean
-    ): RemotePatchBundle = copy(error, name, displayName, createdAt, updatedAt, this.autoUpdate, enabled)
+    ): RemotePatchBundle
 
     protected open suspend fun download(info: MorpheAsset, onProgress: PatchBundleDownloadProgress? = null) =
         withContext(Dispatchers.IO) {
-            installPatchBundle("Downloading patch bundle") { staging ->
-                assetDownloader.downloadToFile(
+            installPatchBundle("Downloading patch bundle", publishedKey = info.publicKey) { staging ->
+                services.assetDownloader.downloadToFile(
                     downloadUrl = info.downloadUrl,
                     saveLocation = staging,
                     onProgress = onProgress
@@ -126,8 +122,30 @@ sealed class RemotePatchBundle(
                 && (remoteCreatedAt == null || remoteCreatedAt == createdAt)
             ) return@withContext null
 
-            download(info, onProgress)
+            downloadUnlessRefused(info, onProgress)
         }
+
+    /**
+     * [download], unless an earlier download refused the same release for its signer while the
+     * source trusted the same key as now, which would only download it to refuse it again.
+     */
+    private suspend fun downloadUnlessRefused(
+        info: MorpheAsset,
+        onProgress: PatchBundleDownloadProgress?
+    ): PatchBundleDownloadResult {
+        val release = listOf(info.version, info.createdAt, readSigningKey().orEmpty()).joinToString("|")
+        val refused = refusedReleaseFile.takeIf { it.exists() }?.readLines()
+        if (refused?.firstOrNull() == release) {
+            throw PatchBundleSignerChangedException(refused.getOrNull(1)?.takeIf { it.isNotEmpty() })
+        }
+
+        return try {
+            download(info, onProgress).also { refusedReleaseFile.delete() }
+        } catch (e: PatchBundleSignerChangedException) {
+            refusedReleaseFile.writeText(listOf(release, e.signer.orEmpty()).joinToString("\n"))
+            throw e
+        }
+    }
 
     suspend fun fetchLatestReleaseInfo(): MorpheAsset {
         val key = "$uid|$endpoint"
@@ -326,10 +344,10 @@ class JsonPatchBundle(
     error: Throwable?,
     directory: File,
     endpoint: String,
-    autoUpdate: Boolean,
     enabled: Boolean,
+    services: RemoteBundleServices,
     val usePrerelease: Boolean = false,
-) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, autoUpdate, enabled) {
+) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, enabled, services) {
 
     /**
      * The branch the endpoint URL currently points to.
@@ -389,22 +407,17 @@ class JsonPatchBundle(
     }
 
     /**
-     * Resolves the effective fetch URL for the current [usePrerelease] state.
-     *
-     * Delegates to [switchBranchInUrl]: uses `BRANCH_DEV` when pre-releases are enabled,
-     * `BRANCH_STABLE` otherwise.
+     * The endpoint on [branch], see [switchBranchInUrl]. Only an endpoint on `BRANCH_STABLE` or
+     * `BRANCH_DEV` follows the channel, one on any other branch was picked on purpose and stays.
      */
-    private fun resolveBranchUrl(url: String) =
-        switchBranchInUrl(url, if (usePrerelease) BRANCH_DEV else BRANCH_STABLE)
+    private fun endpointOn(branch: String) =
+        if (supportsPrerelease) switchBranchInUrl(endpoint, branch) else endpoint
 
-    /**
-     * Returns true if this bundle supports prerelease toggling.
-     * Only bundles whose endpoint explicitly points to `BRANCH_STABLE` or `BRANCH_DEV` branch support.
-     */
-    val supportsPrerelease: Boolean get() {
-        val branch = endpointBranch ?: return false
-        return branch == BRANCH_STABLE || branch == BRANCH_DEV
-    }
+    /** The endpoint for the current [usePrerelease] state, see [endpointOn]. */
+    private val activeEndpoint get() = endpointOn(if (usePrerelease) BRANCH_DEV else BRANCH_STABLE)
+
+    /** Returns true if this bundle supports prerelease toggling, see [Companion.supportsPrerelease]. */
+    val supportsPrerelease: Boolean get() = supportsPrerelease(endpoint)
 
     /**
      * Fetches the latest release metadata for this bundle.
@@ -415,7 +428,7 @@ class JsonPatchBundle(
      * source hasn't updated its `BRANCH_DEV` JSON after shipping a new stable build.
      *
      * When [usePrerelease] is disabled (or the endpoint does not support branch switching),
-     * only the [resolveBranchUrl]-resolved endpoint is fetched, as before.
+     * only the [activeEndpoint] is fetched.
      *
      * @throws IllegalStateException if both channels are unreachable.
      */
@@ -427,10 +440,10 @@ class JsonPatchBundle(
             // pre-release and the stable update would go unnoticed
             coroutineScope {
                 val devDeferred = async {
-                    runCatching { fetchManifest(switchBranchInUrl(endpoint, BRANCH_DEV)) }.getOrNull()
+                    runCatching { fetchManifest(endpointOn(BRANCH_DEV)) }.getOrNull()
                 }
                 val stableDeferred = async {
-                    runCatching { fetchManifest(switchBranchInUrl(endpoint, BRANCH_STABLE)) }.getOrNull()
+                    runCatching { fetchManifest(endpointOn(BRANCH_STABLE)) }.getOrNull()
                 }
                 val devAsset = devDeferred.await()
                 val stableAsset = stableDeferred.await()
@@ -443,7 +456,7 @@ class JsonPatchBundle(
                 }
             }
         } else {
-            fetchManifest(resolveBranchUrl(endpoint))
+            fetchManifest(activeEndpoint)
         }
 
         // If pageUrl is not set, try to infer it from the endpoint and add version tag
@@ -464,8 +477,6 @@ class JsonPatchBundle(
     private suspend fun fetchManifest(url: String) = api.rawFileRequest<MorpheAsset>(url).getOrThrow()
 
     override suspend fun fetchChangelogEntries(): List<ChangelogEntry> {
-        // endpoint stores the original branch - rebuild the URL for the active branch
-        val activeEndpoint = resolveBranchUrl(endpoint)
         val changelogUrl = api.changelogUrlFromBundleEndpoint(activeEndpoint) ?: return emptyList()
         return fetchAndCacheEntries("$uid|$changelogUrl") {
             api.fetchChangelogFromUrl(changelogUrl, stopAfterFirstStable = usePrerelease)
@@ -473,8 +484,7 @@ class JsonPatchBundle(
     }
 
     override suspend fun fetchFullChangelogEntries(): List<ChangelogEntry> {
-        val stableEndpoint = switchBranchInUrl(endpoint, BRANCH_STABLE)
-        val changelogUrl = api.changelogUrlFromBundleEndpoint(stableEndpoint) ?: return emptyList()
+        val changelogUrl = api.changelogUrlFromBundleEndpoint(endpointOn(BRANCH_STABLE)) ?: return emptyList()
         return fetchAndCacheEntries("$uid|$changelogUrl|full") {
             api.fetchChangelogFromUrl(changelogUrl, stopAfterFirstStable = false)
         }
@@ -486,19 +496,25 @@ class JsonPatchBundle(
         displayName: String?,
         createdAt: Long?,
         updatedAt: Long?,
-        autoUpdate: Boolean,
         enabled: Boolean
     ) = JsonPatchBundle(
         name, uid, displayName, createdAt, updatedAt,
-        installedVersionSignature, error, directory, endpoint, autoUpdate, enabled, usePrerelease,
+        installedVersionSignature, error, directory, endpoint, enabled, services, usePrerelease,
     )
 
     fun copy(usePrerelease: Boolean) = JsonPatchBundle(
         name, uid, displayName, createdAt, updatedAt,
-        installedVersionSignature, error, directory, endpoint, autoUpdate, enabled, usePrerelease,
+        installedVersionSignature, error, directory, endpoint, enabled, services, usePrerelease,
     )
 
     companion object {
+        /**
+         * Whether a source reading [endpoint] can switch to prerelease. Only an endpoint that
+         * explicitly points to the `BRANCH_STABLE` or `BRANCH_DEV` branch can.
+         */
+        fun supportsPrerelease(endpoint: String): Boolean =
+            extractBranch(endpoint).let { it == BRANCH_STABLE || it == BRANCH_DEV }
+
         /**
          * Extracts the branch name from a GitHub or GitLab URL.
          *
@@ -548,11 +564,13 @@ class APIPatchBundle(
     error: Throwable?,
     directory: File,
     endpoint: String,
-    autoUpdate: Boolean,
     enabled: Boolean,
+    services: RemoteBundleServices,
     val usePrerelease: Boolean = false,
-) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, autoUpdate, enabled) {
+) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, enabled, services) {
+    // Releases declare their key, but the API fallback and older releases do not
     override suspend fun getLatestInfo() = api.getPatchesUpdate(usePrerelease).getOrThrow()
+        .let { it.copy(publicKey = it.publicKey ?: SOURCE_SIGNING_KEY) }
 
     // The endpoint is the API identifier rather than a browsable URL
     override val browsePageUrl: String get() = SOURCE_REPO_URL
@@ -580,16 +598,15 @@ class APIPatchBundle(
         displayName: String?,
         createdAt: Long?,
         updatedAt: Long?,
-        autoUpdate: Boolean,
         enabled: Boolean
     ) = APIPatchBundle(
         name, uid, displayName, createdAt, updatedAt,
-        installedVersionSignature, error, directory, endpoint, autoUpdate, enabled, usePrerelease,
+        installedVersionSignature, error, directory, endpoint, enabled, services, usePrerelease,
     )
 
     fun copy(usePrerelease: Boolean) = APIPatchBundle(
         name, uid, displayName, createdAt, updatedAt,
-        installedVersionSignature, error, directory, endpoint, autoUpdate, enabled, usePrerelease,
+        installedVersionSignature, error, directory, endpoint, enabled, services, usePrerelease,
     )
 }
 
@@ -603,9 +620,9 @@ class GitHubPullRequestBundle(
     error: Throwable?,
     directory: File,
     endpoint: String,
-    autoUpdate: Boolean,
-    enabled: Boolean
-) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, autoUpdate, enabled) {
+    enabled: Boolean,
+    services: RemoteBundleServices
+) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, enabled, services) {
 
     override suspend fun getLatestInfo() = withContext(Dispatchers.IO) {
         val (owner, repo, prNumber) = endpoint.split("/").let { parts ->
@@ -616,8 +633,7 @@ class GitHubPullRequestBundle(
     }
 
     override suspend fun download(info: MorpheAsset, onProgress: PatchBundleDownloadProgress?) = withContext(Dispatchers.IO) {
-        val prefs: PreferencesManager by inject()
-        val gitHubPat = prefs.gitHubPat.get().also {
+        val gitHubPat = services.prefs.gitHubPat.get().also {
             if (it.isBlank()) throw RuntimeException("PAT is required")
         }
 
@@ -731,7 +747,6 @@ class GitHubPullRequestBundle(
         displayName: String?,
         createdAt: Long?,
         updatedAt: Long?,
-        autoUpdate: Boolean,
         enabled: Boolean
     ) = GitHubPullRequestBundle(
         name,
@@ -743,7 +758,7 @@ class GitHubPullRequestBundle(
         error,
         directory,
         endpoint,
-        autoUpdate,
-        enabled
+        enabled,
+        services
     )
 }

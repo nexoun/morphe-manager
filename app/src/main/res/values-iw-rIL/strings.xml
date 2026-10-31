@@ -8,12 +8,18 @@
     <string name="home_unpatched_badge">לא תוקן</string>
     <string name="home_no_patches_available">אין תיקונים זמינים</string>
     <string name="home_app_hide_title">להסתיר את האפליקציה הזאת?</string>
+    <string name="home_more_apps_title">עוד אפליקציות</string>
+    <string name="home_more_apps_hide_title">להסתיר את הכרטיס הזה?</string>
+    <string name="home_more_apps_hide_message">ניתן להחזיר זאת בכל עת ב-הגדרות &gt; מראה &gt; מסך הבית</string>
     <string name="home_app_hide_message">האפליקציה הזו תוסתר ממסך הבית. תוכל לשחזר אותה מאוחר יותר מהאפליקציות המוסתרות באמצעות הכפתור בתחתית הרשימה</string>
     <string name="home_app_will_be_hidden">האפליקציה הזאת תהיה מוסתרת</string>
+    <string name="home_app_hidden_named">%s מוסתרים</string>
+    <string name="home_app_shown_named">%s מוצגים</string>
     <string name="home_app_no_hidden">אין אפליקציות מוסתרות</string>
     <string name="home_app_hidden_apps_title">אפליקציות מוסתרות</string>
     <string name="home_app_hidden_apps_hint">
 הקישו כדי להציג</string>
+    <string name="home_apps_unhide_message">אפליקציות בלתי נגלות חוזרות למסך הבית</string>
     <string name="home_app_patch_sources_description">מקורות שנותרו לא מסומנים אינם מוצעים כשהאפליקציות האלה מתוקנות, והתיקונים שלהם לעולם אינם מצטרפים לבחירה מעצמם. כל מקור נשאר מסומן עבור כל שאר האפליקציות</string>
     <string name="home_app_patch_sources_mixed">מוצע ל-%1$s מתוך %2$s</string>
     <string name="home_app_patch_sources_covers">יש תיקונים עבור %1$s מתוך %2$s</string>
@@ -23,6 +29,15 @@
     <string name="deep_link_add_source_title">הוסף מקור</string>
     <string name="deep_link_add_source_message">האם ברצונך להוסיף מקור תיקונים זה ל-Morphe?</string>
     <string name="deep_link_add_source_warning">הוסף מקורות שאתה סומך עליהם בלבד</string>
+    <!-- Shown under the app a link was opened for -->
+    <string name="deep_link_add_source_only_app">היישום היחיד שנוסף הוא זה. ניתן להוסיף יישומים אחרים מרשימת היישומים של המקור</string>
+    <!-- Shown when the link was opened for the universal patches of a source, which no app is added with -->
+    <string name="deep_link_add_source_only_universal">מוסיפים רק תיקונים גלובליים. ניתן להוסיף אפליקציות מרשימת האפליקציות של המקור</string>
+    <!-- Asked when the link names an app of a source that is already added -->
+    <string name="deep_link_add_source_app_back">מקור זה כבר נוסף. להוסיף אפליקציה זו מהמקור הקיים?</string>
+    <!-- Asked when a .mpp file opened from a file manager is another version of a local source, %s being its name -->
+    <string name="mpp_import_update_message">זוהי גרסה חדשה של %s. האם ברצונך לעדכן אותה?</string>
+    <string name="mpp_import_unreadable">לא ניתן לקרוא קובץ זה</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">עדכון Morphe זמין</string>
     <string name="home_update_available_subtitle">גרסה חדשה מוכנה להתקנה</string>
@@ -46,8 +61,8 @@
     <string name="home_update_success_subtitle">המקורות שלך מעודכנים</string>
     <string name="home_sources_are_loading">המקורות נטענים, נא להמתין…</string>
     <string name="home_search_apps">חיפוש אפליקציות</string>
-    <string name="home_app_list_options_title">מיון וסינון</string>
-    <string name="home_app_list_options_state_description">ממוינת לפי %1$s, מסוננת לפי %2$s</string>
+    <string name="list_options_title">מיון וסינון</string>
+    <string name="list_options_state_description">מיון לפי %1$s, סינון לפי %2$s</string>
     <string name="home_app_filter_all_description">כל אפליקציה במסך הבית</string>
     <string name="home_app_filter_patched_description">אפליקציות שתיקנת או שמרת עם Morphe</string>
     <string name="home_app_filter_not_patched_description">אפליקציות שעדיין לא תיקנת ב-Morphe</string>
@@ -55,6 +70,10 @@
     <string name="home_app_filter_uninstalled_description">אפליקציות שתוקנו באמצעות Morphe ושאינן מותקנות עוד במכשיר זה</string>
     <string name="home_app_filter_clones">שיבוטים</string>
     <string name="home_app_filter_clones_description">אפליקציות שנבנו תחת שם חבילה משלהן, מותקנות לצד המקורית</string>
+    <string name="home_app_grouping_none">אין</string>
+    <string name="home_app_grouping_all_apps_description">רשימה אחת עם כל היישומים</string>
+    <string name="home_app_grouping_sources_description">יישומים מקור מתקן המשפיע עליהם</string>
+    <string name="home_app_grouping_custom_description">יישומים בקטגוריות שאתה יוצר</string>
     <string name="home_app_sort_manual_description">החזק לחיצה ארוכה על אפליקציה, ולאחר מכן הקש על כפתור הסדר מחדש</string>
     <string name="home_app_sort_recommended">סדר מומלץ</string>
     <string name="home_app_sort_recommended_description">אפליקציות מותקנות ומעוגנות ראשונות</string>
@@ -80,8 +99,10 @@
     <string name="home_category_name">שם קטגוריה</string>
     <string name="home_category_move_to">העבר לקטגוריה</string>
     <string name="home_category_move_selected_title">העבר אפליקציות נבחרות</string>
-    <string name="home_category_delete_confirm_title">מחק קטגוריה</string>
-    <string name="home_category_delete_confirm_message">מחק קטגוריה &lt;b&gt;%1$s&lt;/b&gt;? האפליקציות שבתוכה יחזרו ל-&lt;b&gt;%2$s&lt;/b&gt;</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">למחוק את %s?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">האפליקציות שלה יעברו חזרה ל-&lt;b&gt;%s&lt;/b&gt;</string>
     <string name="home_category_actions_unavailable">פעולות לא זמינות עבור קטגוריה זו</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">איזה אפליקציה אתה רוצה לתקן?</string>
@@ -147,7 +168,12 @@
     <!-- Home Screen - Sources Management -->
     <string name="sources_management_title">מקורות תיקונים</string>
     <string name="sources_search">חפש מקורות ותיקונים</string>
-    <string name="sources_sort_title">מקורות תיקונים</string>
+    <!-- Which sources the sources page lists, each with what it keeps -->
+    <string name="sources_filter_all_description">כל המקורות</string>
+    <string name="sources_filter_enabled_description">תיקוני מקורות נלקחים מ</string>
+    <string name="sources_filter_disabled_description">מקורות כבויים</string>
+    <string name="sources_filter_issues">צריכים תשומת לב</string>
+    <string name="sources_filter_issues_description">מקורות שנחסמו, נכשלו בטעינה או דורשים Morphe עדכני</string>
     <string name="sources_sort_manual">הזמנה ידנית</string>
     <string name="sources_sort_manual_hint">לחץ לחיצה ארוכה על מקור כדי לשנות את הסדר</string>
     <string name="sources_sort_last_updated">עודכן לאחרונה</string>
@@ -159,19 +185,28 @@
     <string name="sources_management_report_issue">דווח על בעיה</string>
     <string name="sources_management_failed_to_open_url">כישלון בפתיחת כתובת אינטרנט</string>
     <string name="sources_apps">אפליקציות</string>
-    <string name="sources_apps_description">הקישו על אפליקציה כדי להחריג אותה מהמקור הזה או להחזיר אותה, או לחצו לחיצה ארוכה כדי לבחור כמה. אפליקציה נעלמת ממסך הבית ברגע שאף מקור לא מספק אותה.</string>
+    <string name="sources_apps_description">אפליקציות מסומנות מגיעות ממקור זה. הקש על אפליקציה כדי להוציא אותה החוצה או להחזיר אותה. אפליקציה עוזרת את המסך הביתי ברגע שאף מקור לא מביא אותו, אלא אם כן תיקנת אותה</string>
     <string name="sources_apps_brought">מסופקות על ידי המקור הזה</string>
     <string name="sources_apps_left_out">הוחרגו מהמקור הזה</string>
-    <string name="sources_apps_leave_out">החר</string>
-    <string name="sources_apps_leave_out_done">הוחרג</string>
-    <string name="sources_apps_bring_back">החזר</string>
+    <!-- Under an app left out of a source that keeps its home screen card because the user has patched it -->
+    <string name="sources_apps_stays_patched">נשמר כמתוקן</string>
+    <!-- Marks an app (not a patch) the source started supporting since its app list was last opened -->
+    <string name="sources_apps_new">חדש</string>
+    <string name="sources_apps_new_apps">הבא אפליקציות חדשות</string>
+    <!-- Under the Bring new apps switch in a source's app list, whichever way it is set. "It" is the patch source -->
+    <string name="sources_apps_new_apps_description">אפליקציות שמוסיפות מאוחר יותר מופיעות במסך הביתי</string>
     <string name="sources_management_prerelease_toggle">תיקונים לפני הפצה</string>
     <string name="sources_management_prerelease_toggle_description">מקבל גישה מוקדמת לגרסאות תיקונים ניסיוניות חדשות</string>
     <string name="sources_prerelease_warning_title">להפעיל תיקונים לגרסאות מוקדמות?</string>
     <string name="sources_prerelease_warning_message">גרסאות מוקדמות עדיין בפיתוח. תיקונים עלולים להיכשל או לשבור את האפליקציה, ותכונות עשויות להשתנות ללא אזהרה</string>
-    <string name="expert_mode_prerelease_notice">מקור זה נמצא בגרסה מוקדמת. תיקונים עלולים להיכשל או להתנהג באופן בלתי צפוי</string>
+    <string name="expert_mode_unstable_notice">תיקונים בגרסת Pre-release או תיקונים ניסיוניים עשויים להיות לא יציבים</string>
     <string name="sources_management_experimental_versions_toggle">גרסאות אפליקציה ניסיוניות</string>
     <string name="sources_management_experimental_versions_toggle_description">מציג ומתקן יעדים ניסיוניים של אפליקציות</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">הפעל תיקונים לפני הפצה</string>
+    <string name="sources_management_prerelease_disable">בטל תיקונים לפני הפצה</string>
+    <string name="sources_management_experimental_versions_enable">הפעל גרסאות אפליקציה ניסיוניות</string>
+    <string name="sources_management_experimental_versions_disable">בטל גרסאות אפליקציה ניסיוניות</string>
     <string name="sources_management_already_exists">מקור זה כבר נוסף</string>
     <string name="sources_management_invalid_url">כתובת URL מקור לא תקינה. אנא בדוק את הכתובת ונסה שוב</string>
     <string name="sources_management_blocked">מקור הטלאים הזה חסום ואינו יכול להיות מוסף</string>
@@ -179,16 +214,21 @@
     <string name="sources_management_metadata_unavailable">מטא-נתונים לא זמינים</string>
     <string name="sources_management_metadata_unavailable_hint">קובץ המטא-נתונים המרוחק לא זמין. תיקון באמצעות החבילה המותקנת עדיין עובד, אך עדכון אוטומטי מושבת עבור מקור זה</string>
     <string name="sources_management_metadata_unavailable_hint_missing">לא ניתן להוריד את חבילת התיקון. כתובת ה-URL של המקור עשויה להיות שגויה או שהקובץ אינו קיים</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">לא ניתן היה להוריד את חבילת התיקונים. ייתכן שכתובת ה-URL של המקור אינה נכונה או שהקובץ אינו קיים. לחץ כדי לשנות אותה</string>
     <string name="sources_management_outdated_manager_badge">עדכן Morphe</string>
     <string name="sources_management_outdated_manager_hint">מקור זה נבנה עבור patcher %1$s, אך Morphe %2$s כוללת את patcher %3$s. עדכן את Morphe כדי להשתמש בו</string>
     <string name="sources_management_held_back_badge">קרס</string>
     <string name="sources_management_held_back_hint">המקור הזה גרם ל-Morphe לקרוס בזמן הטעינה, ולכן מדלגים עליו. עדכן או ייבא אותו מחדש כדי לנסות שוב</string>
+    <string name="sources_management_signed_by">נחתם על ידי</string>
+    <string name="sources_management_signing_key_changed_badge">המפתח שונה</string>
+    <string name="sources_management_signing_key_changed_hint">הגרסה האחרונה לא נחתמה באמצעות המפתח שהמקור הזה השתמש בו בעבר, ולכן היא לא הותקנה. הקש כדי לבחון אותה</string>
     <string name="sources_management_source_enabled">מקור מופעל</string>
     <string name="sources_management_source_disabled">מקור מושבת</string>
     <string name="sources_management_source_updating">עדכון מקור</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">הצג שם</string>
     <string name="sources_dialog_rename">שנה את שם מקור התיקונים</string>
+    <string name="sources_dialog_change_url">שנה את מקור ההורדה של התיקונים</string>
     <string name="sources_dialog_duplicate_name_error">יש כבר מקור תיקונים עם שם זה</string>
     <string name="sources_dialog_missing_error">עדכון מקור התיקונים הזה נכשל</string>
     <string name="sources_dialog_add_source">הוסף תצוג</string>
@@ -199,9 +239,6 @@
     <string name="sources_dialog_paste_no_links">לא נמצאו קישורים בלוח הגזירים</string>
     <string name="sources_dialog_local">אנל</string>
     <string name="sources_dialog_local_files">בחר קבצי מקור לתיקונים</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">הוסף קבצים נוספים</string>
-    <string name="sources_dialog_local_file_tap_hint">הקש כדי לעיין באחסון</string>
     <string name="sources_dialog_local_invalid_extension">הקובץ חייב להיות עם סיומת ‎.mpp</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">מעדכן את %s</string>
@@ -209,31 +246,38 @@
     <string name="sources_dialog_url_invalid">הכתובת חייבת להפנות למאגר GitHub/GitLab או לקובץ ‎.json</string>
     <string name="sources_dialog_preinstalled">מובן מראשון</string>
     <string name="sources_dialog_community">תיקוני קהילה</string>
-    <string name="sources_dialog_choose_apps">בחירת אפליקציות</string>
+    <string name="sources_dialog_choose_apps">בחר אפליקציות</string>
     <string name="sources_dialog_choose_apps_description">בחר אילו מהאפליקציות של מקור זה לשמור לאחר טעינתו.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">מקורות תיקונים של צד שלישי</string>
-    <string name="sources_dialog_community_notice_message">"מקורות תיקוני קהילה נעשים ומתוחזקים על ידי מחבריהם. Morphe אינו בודק או מאמת תיקוני צד שלישי, ואינו אחראי לתוכנם או למה שהם עושים במכשירך.
-
-כל דבר שתוסיף מאתר זה בשימוש על אחריותך בלבד."</string>
+    <string name="sources_dialog_community_notice_message">"מקורות של תיקוני קהילה נוצרו ומתוחזקים על ידי מחבריהם. Morphe אינה בודקת או מאמתת תיקונים של צד שלישי, ואינה אחראית על תוכנם או על פעולתם במכשיר שלך"</string>
     <string name="sources_update_success">עדכון הצליח</string>
     <string name="sources_update_unavailable">אין עדכון זמין</string>
     <string name="sources_download_fail">שגגה להוריד תצוגים: %s</string>
     <string name="sources_download_fail_named">\'\"%s\"\' לא ניתן לעדכון. בדוק את חיבור האינטרנט שלך ונסה שוב</string>
     <string name="sources_download_endpoint_not_found">\'\"%s\"\': מטא-נתוני תיקון לא נמצאו</string>
+    <string name="sources_signing_key_changed_named">\'%s\' לא עודכן מכיוון שהגרסה האחרונה שלו לא נחתמה באמצעות המפתח שבו הוא השתמש בעבר</string>
+    <string name="sources_signing_key_changed_local">הקובץ אינו חתום על ידי המפתח שבו השתמש מקור זה בעבר. כדי לסמוך עליו, מחק את המקור והוסף את הקובץ שוב</string>
+    <string name="sources_signing_key_trust_title">סמוך על המפתח החדש?</string>
+    <string name="sources_signing_key_trust_message">הגרסה האחרונה חתומה על ידי מפתח שונה. ייתכן שהמפתח החליף את המפתח שלו, או שמישהו אחר פרסם את הגרסה הזו. סמוך עליה רק אם המפתח הודיע על מפתח חדש</string>
+    <string name="sources_signing_key_trust_message_unsigned">הגרסה האחרונה אינה חתומה. ייתכן שהמפתח הפסיק לחתום על גרסאות, או שמישהו אחר פרסם את הגרסה הזו. סמוך עליה רק אם המפתח הודיע על כך</string>
+    <string name="sources_signing_key_trusted">מפתח מהימן</string>
+    <string name="sources_signing_key_new">מפתח חדש</string>
     <string name="sources_patch_expert_badge">מומחה</string>
     <string name="sources_patch_expert_badge_tooltip">הפעל מצב מומחה בהגדרות כדי לכלול תיקון זה באופן ידני</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">נזקק לעזרה במציאת APK מקורי ללא תיקונים?</string>
+    <string name="home_apk_availability_title">צריך עזרה במציאת ה-APK?</string>
     <string name="home_apk_availability_dialog_simple">להתקן &lt;b&gt;%s&lt;/b&gt;, צריך את הגרסה הלא מתוקנת של APK:</string>
     <string name="home_apk_availability_dialog_expert">לעדכן &lt;b&gt;%s&lt;/b&gt;, צריך APK לא מעודכן של הגרסאות:</string>
     <string name="home_apk_availability_recommended_label">מומלץ</string>
     <string name="home_apk_availability_unpatched_label">לא מתקן</string>
     <string name="home_apk_availability_incompatible_label">לא תואם</string>
     <string name="home_apk_availability_installed_version">מותקן במכשיר זה: %s</string>
-    <string name="home_apk_availability_yes">כן, עזור לי למצוא APK</string>
-    <string name="home_apk_availability_no">לא, אני כבר מחזיק APK</string>
+    <string name="home_apk_availability_find">כן, עזור לי למצוא אותו</string>
+    <string name="home_apk_availability_have">לא, הוא כבר נמצא אצלי</string>
     <string name="home_apk_helper_download">השתמש באפליקציה מסייעת</string>
+    <string name="home_apk_helper_untrusted">אפליקציית עזר מותקנת אך עדיין לא אמינה, ולכן אינה מוצגת כאן</string>
+    <string name="home_apk_helper_untrusted_action">סקור את אפליקציות העזר</string>
     <string name="home_apk_helper_title">הורד באמצעות אפליקציה מסייעת</string>
     <string name="home_apk_helper_description">Morphe תבקש מהאפליקציה המסייעת להלן להוריד את קובץ ה-APK המקורי ולהחזיר את הקובץ</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -246,8 +290,8 @@
     <string name="home_apk_helper_wrong_package">אפליקציית העזר החזירה אפליקציה שונה מזו שמתוקנת</string>
     <string name="home_apk_helper_installed_unavailable">Morphe לא הצליח להשתמש באפליקציה המותקנת</string>
     <string name="home_apk_helper_installed_incompatible">לא ניתן לתקן את הגרסה המותקנת</string>
-    <string name="home_apk_use_saved">השתמש ב-APK שמור</string>
-    <string name="home_apk_use_installed">השתמש ב-APK מותקן</string>
+    <string name="home_apk_use_saved_copy">השתמש בעותק שמור</string>
+    <string name="home_apk_use_installed_app">השתמש באפליקציה מותקנת</string>
     <string name="home_apk_use_saved_unsupported">הטלאים אינם תומכים בעותק השמור הזה. תיקונו ידרוש ממך אישור, או בחר APK אחר.</string>
     <string name="home_apk_use_installed_unverified">לא ניתן לאמת את החתימה של האפליקציה המותקנת, כך שהיא עשויה להיות כבר מטופלת</string>
     <string name="home_unverified">לא מאומת</string>
@@ -283,14 +327,19 @@
     <string name="home_download_instructions_copy_link">העתק קישור</string>
     <string name="home_download_instructions_link_copied">הקישור הועתק</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">בחרו קובץ APK שהורד</string>
-    <string name="home_file_picker_prompt_description">בחר את קובץ ה-APK &lt;b&gt;%s&lt;/b&gt; שהורדת זה עתה</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">בחר את ה-APK של %s</string>
+    <string name="home_file_picker_prompt_where">דפדפנים שומרים זאת בדרך כלל בתיקיית ההורדות</string>
     <string name="home_file_picker_prompt_open_apk">פתח קובץ APK</string>
     <string name="home_recommended_version">גרסה מומלצת</string>
     <string name="home_selected_version">גרסה נבחרת</string>
     <string name="home_select_apk_title">בחר APK</string>
-    <string name="home_select_any_apk_description">בחר קובץ APK של כל אפליקציה, או בחר אפליקציה שכבר מותקנת במכשיר זה</string>
+    <string name="home_select_apk_description">"תיקונים אוניברסליים עובדים עם כל אפליקציה
+
+בחר מאיפה לקחת את ה-APK שלה"</string>
     <string name="home_use_installed_app">השתמש באפליקציה מותקנת</string>
+    <string name="home_use_installed_app_description">בחר אפליקציה שכבר נמצאת במכשיר זה</string>
+    <string name="home_open_apk_file_description">בחר קובץ APK, APKM, APKS או XAPK מהאחסון</string>
     <string name="home_installed_app_picker_title">אפליקציות מותקנות</string>
     <string name="home_installed_app_picker_empty">לא נמצאו אפליקציות</string>
     <string name="home_installed_app_picker_filter_user">אפליקציות משתמש בלבד</string>
@@ -303,19 +352,18 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">חפש תיקונים</string>
     <string name="expert_mode_disable_all">השבת את כולם</string>
-    <string name="expert_mode_disable_all_done">כל התיקונים מושבתים</string>
     <string name="expert_mode_enable_all">הפעל את כולם</string>
-    <string name="expert_mode_enable_all_done">כל התיקונים מופעלים</string>
     <string name="expert_mode_enable_all_universal_pending">הקש שוב עבור תיקונים אוניברסליים</string>
     <string name="expert_mode_universal_all_warning_title">להפעיל את כל התיקונים האוניברסליים?</string>
     <string name="expert_mode_universal_all_warning_message">תיקונים אוניברסליים אינם נבדקים יחד. הפעלת כולם עלולה לגרום להתנגשויות, כשלים בתיקון או קריסות</string>
-    <string name="expert_mode_reset_to_default">להפעיל תיקונים מומלצים</string>
+    <string name="expert_mode_recommended">תיקונים מומלצים</string>
     <string name="expert_mode_reset_to_default_done">התיקונים המומלצים הוחלו</string>
-    <string name="expert_mode_restore_saved">שחזור בחירה שמורה</string>
+    <string name="expert_mode_selected_count">%1$s מתוך %2$s נבחר</string>
+    <string name="expert_mode_saved_selection">בחירה שמורה</string>
     <string name="expert_mode_restore_saved_done">שחזור הבחירה השמורה הסתיים</string>
-    <string name="expert_mode_copy_from_bundle">העתק את הבחירה מחבילה אחרת</string>
     <string name="expert_mode_copy_from_bundle_no_patches">לא נמצאו התאמות מדבקות בחבילה זו</string>
     <string name="expert_mode_no_results">לא נמצאו תיקונים</string>
+    <string name="expert_mode_selected_only">תיקונים נבחרים בלבד</string>
     <string name="expert_mode_selected_only_on">מציג רק טלאים נבחרים</string>
     <string name="expert_mode_selected_only_off">מציג את כל הטלאים</string>
     <string name="expert_mode_universal_patches">עדכונים אוניברסליים</string>
@@ -324,9 +372,7 @@
     <string name="expert_mode_patch_required_by_installer">נדרש עבור יעד ההתקנה הנבחר</string>
     <string name="expert_mode_patch_unavailable_for_installer">לא זמין עבור יעד ההתקנה הנבחר</string>
     <string name="expert_mode_multiple_sources_warning_title">נבחרו מקורות ציורים מרובים</string>
-    <string name="expert_mode_multiple_sources_warning_message">"בחרת בקבצי ציורים ממקורות מרובים. זה עשוי לגרום למחלוקות תאימות או התנהגות בלתי צפויה.
-
-האם אתה בטוח שברצונך להמשיך?"</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">תיקונים ממקורות שונים אינם מיועדים לעבוד יחד ועלולים להתנגש או לשבור את האפליקציה</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">APK לא מאומת</string>
     <string name="home_invalid_signature_message">ה-APK שבחרת עבור &lt;b&gt;%s&lt;/b&gt; אינו תואם לתעודת החתימה הצפויה. ייתכן שהוא שונה או ממקור לא מהימן</string>
@@ -340,7 +386,9 @@
     <string name="home_dialog_unsupported_version_experimental_label">ניסיוני</string>
     <string name="home_dialog_unsupported_version_experimental_description">גרסה זו בעלת תמיכה ניסיונית ועשויה להיות לא יציבה או לא שלמה</string>
     <string name="morphe_experimental_app_version_dialog_title">האם תרצה להתנסות? 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">הגרסה הזו של &lt;b&gt;%s&lt;/b&gt; בעלת תמיכה מוקדמת ניסיונית&lt;br/&gt;&lt;br/&gt;🔧 צפה להתנהגות מוזרה של האפליקציה או באגים בלתי מזוהים מכיוון שהתיקונים מיושרים עבור גרסת האפליקציה הזו</string>
+    <string name="morphe_experimental_app_version_dialog_message">"גרסה זו של &lt;b&gt;%s&lt;/b&gt; כוללת תמיכה ניסיונית מוקדמת.
+
+🔧 צפו להתנהגות אפליקציה מוזרה או לבאגים לא מזוהים בעוד התיקונים מעודכנים עבור גרסת אפליקציה זו"</string>
     <string name="home_dialog_unsupported_version_dialog_title">גרסה לא מומלצת</string>
     <string name="home_dialog_unsupported_version_dialog_description">APK זה אינו גרסה מומלצת של האפליקציה. להמשיך ייתכן שיביא לפגיעה בתפקוד של האפליקציה</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -366,7 +414,6 @@
     <string name="home_simple_bundle_select_remember">השתמש תמיד במקור הזה עבור האפליקציה הזו</string>
     <!-- Color picker -->
     <string name="custom_color">צבע מותאם אישית</string>
-    <string name="hex_color">צבע הקסדצימלי</string>
     <string name="color_picker_shade">רוויה ובהירות</string>
     <string name="color_picker_hue">גוון</string>
     <!-- Patch Options -->
@@ -433,7 +480,7 @@
     <string name="batch_patch_title">תיקון באצווה</string>
     <string name="batch_patch_planning">מכין את התור…</string>
     <string name="batch_patch_preparing_next">מכין את האפליקציה הבאה…</string>
-    <string name="batch_patch_progress_counter">טלאו %1$s מתוך %2$s</string>
+    <string name="batch_patch_progress_counter">הטמעת %1$s מתוך %2$s</string>
     <string name="batch_patch_summary">%1$s טלאים הותקנו, %2$s נכשלו, %3$s דולגו</string>
     <string name="batch_patch_saved_hint">האפליקציות שעברו תיקון נשמרו. התקן אותן עכשיו, או מאוחר יותר מרשימת ה-APK המתוקנים בהגדרות</string>
     <string name="batch_patch_multiple_sources">אפליקציות מסוימות משלבות טלאים ממקורות שונים, מה שעלול לגרום להתנגשויות</string>
@@ -447,12 +494,19 @@
     <string name="batch_patch_force_version">טלא באופן אוטומטי</string>
     <string name="batch_patch_force_version_done">הוכנס לתור בכל זאת, האפליקציה עלולה להישבר</string>
     <string name="batch_patch_accept_signature_done">הוכנס לתור בכל זאת, APK לא אומת</string>
+    <string name="batch_patch_apk_selected">APK נבחר</string>
     <string name="batch_patch_edit_patches">בחר טלאים</string>
     <string name="batch_patch_state_no_apk">אין APK</string>
     <string name="batch_patch_state_no_patches">אין טלאים</string>
+    <string name="batch_patch_state_no_selection">לא נבחר כלום</string>
+    <string name="batch_patch_no_selection">אף אחד מהפאצ\'ים הזמינים אינו נבחר</string>
     <string name="batch_patch_policy_install">התקן לאחר סיום</string>
     <string name="batch_patch_policy_install_description">מתקין כל אפליקציה שעברה תיקון מיד לאחר סיום התור. כבוי שומר את ה-APKs לשימוש מאוחר יותר</string>
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_policy_mount">בצע Mount בסיום</string>
+    <string name="batch_patch_policy_mount_description">מבצע Mount לכל אפליקציה שעברה פאטץ\' ברגע שהתור מסתיים. כיבוי ישמור את קבצי ה-APK להמשך</string>
+    <string name="batch_patch_policy_install_mount">התקן או בצע Mount בסיום</string>
+    <string name="batch_patch_policy_install_mount_description">מתקין או מרכיב כל אפליקציה שעברה פאטץ\' ברגע שהתור מסתיים. מצב \'כבוי\' שומר את קבצי ה-APK להמשך</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_start">התחלה</string>
     <string name="batch_patch_stop_title">עצור תיקון באצווה?</string>
     <string name="batch_patch_stop_description">האפליקציה שעוברת תיקון כרגע וכל מה שעדיין בתור יבוטל</string>
@@ -461,13 +515,18 @@
     <string name="batch_patch_install_failed">ההתקנה נכשלה</string>
     <string name="batch_patch_in_progress">תיקון באצווה כבר פועל</string>
     <string name="batch_patch_nothing_outdated">כל האפליקציות שעברו תיקון מעודכנות</string>
+    <string name="batch_queue_add_action">הוסף לתור</string>
+    <string name="batch_queue_pending_subtitle">הקש כדי לבדוק ולהתחיל</string>
+    <string name="batch_queue_clear_title">לנקות את התור?</string>
+    <string name="batch_queue_clear_description">כל האפליקציות יוסרו מהתור</string>
     <string name="shortcut_repatch_short">תקן מחדש</string>
     <string name="shortcut_repatch_long">תקן מחדש אפליקציות מיושנות</string>
     <string name="shortcut_check_updates_short">בדוק עדכונים</string>
     <string name="shortcut_check_updates_long">בדוק עדכוני טלאים</string>
     <string name="shortcut_patch_app">טלא %s</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">האם אתה בטוח שברצונך למחוק את אפליקציה זו? </string>
+    <string name="home_app_info_uninstall_title">להסיר את האפליקציה הזו?</string>
+    <string name="home_app_info_uninstall_removes_data">האפליקציה והנתונים שלה מוסרים ממכשיר זה</string>
     <string name="batch_uninstall_confirm_body">האפליקציות שנבחרו יוסרו מהמכשיר שלך לצמיתות</string>
     <string name="home_app_info_remove_app_warning">זוהי תהליך מחיקה קבוע:</string>
     <string name="home_app_info_delete_item_database">עדכון בסיס נתונים</string>
@@ -523,10 +582,10 @@
     <string name="root_pre_patch_installer_description">למכשיר שלך יש גישת רוט. בחר אם האפליקציה צריכה להיות מטופלת עבור התקנת רוט או התקנה רגילה</string>
     <string name="root_pre_patch_installer_mount_title">מצב התקנת רוט</string>
     <string name="root_pre_patch_installer_mount_description">תיקונים להתקנת רוט, ואז מתקין את ה-APK על גבי האפליקציה המקורית המתאימה. אין צורך ב-GmsCore</string>
-    <string name="root_mount_module_unmount_warning">אם ל-KernelSU מופעלים כברירת מחדל מודולי ניתוק, פתח KernelSU > משתמש על-ידי > האפליקציה שהרכבת > פרופיל > מותאם אישית ובטל את מודולי ניתוק. אחרת, ייתכן שה-APK המותקן לא ייכנס לתוקף, גם אם Morphe מראה שהוא מותקן</string>
+    <string name="root_mount_module_unmount_warning">אם ב-KernelSU המצב \"Unmount modules by default\" מופעל, פתח את KernelSU &gt; Superuser &gt; האפליקציה שהותקנה &gt; Profile &gt; Custom והפעל את \"Unmount modules\" בחזרה לכבוי. אחרת, ה-APK המתוקן והמותקן עשוי לא להיכנס לתוקף, גם אם Morphe מציג אותו כמותקן</string>
     <string name="root_pre_patch_installer_standard_title">מצב התקנה רגיל</string>
     <string name="root_pre_patch_installer_standard_description">התקנת תיקונים כקובץ APK רגיל עם תמיכה ב-GmsCore. הגדרת המתקין שלך משמשת לאחר תיקון</string>
-    <string name="root_pre_patch_installer_hint">מצב תיקון זה נפרד מ-Settings > System > Installer ואינו יכול להיות שונה לאחר תיקון</string>
+    <string name="root_pre_patch_installer_hint">בקש כאשר ההגדרות <b>&amp;gt;</b> הטמעה <b>&amp;gt;</b> התקנה <b>&amp;gt;</b> בחירת מתקינה מופעלת. לא ניתן לשנות את מצב ההטמעה לאחר ההטמעה</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">השגיאה הועתקה ללוח</string>
     <string name="patcher_error_log">יומן שגיאות</string>
@@ -554,7 +613,7 @@
     <string name="patcher_field_output_size">גודל הפלט</string>
     <!-- How long patching took -->
     <string name="patcher_field_time">זמן</string>
-    <!-- Average and peak memory the patcher process held while it ran -->
+    <!-- Average and peak heap the patcher held while it ran -->
     <string name="patcher_field_memory_average">ממוצע זיכרון</string>
     <string name="patcher_field_memory_max">מקסימום זיכרון</string>
     <!-- Fastest read or write rate reached while patching, in data per second -->
@@ -606,12 +665,15 @@
     <string name="patcher_storage_permission_open_settings">פתח הגדרות אחסון</string>
     <string name="patcher_storage_badge_denied">ההרשאה נדחתה</string>
     <string name="patcher_storage_badge_missing">לא נמצא</string>
+    <string name="patcher_storage_badge_rejected">לא ניתן לשימוש</string>
     <string name="batch_patch_option_paths_skipped">קבצי אפשרויות תיקון חסרים וידולגו: %1$s</string>
     <string name="patcher_missing_patches_title">חלק מהתיקונים אינם זמינים יותר</string>
-    <string name="patcher_missing_patches_description">הבחירה השמורה עבור אפליקציה זו מציינת תיקונים שאף מקור פעיל אינו מציע יותר. המשך התהליך יתקן את האפליקציה בלעדיהם</string>
+    <string name="patcher_missing_patches_description">הבחירה השמורה עבור אפליקציה זו מציינת תיקונים שאף מקור פעיל כבר לא מציע. המשך התהליך יבצע תיקון לאפליקציה ללא תיקונים אלו</string>
     <string name="patcher_missing_patches_label">לא מוצעים יותר</string>
     <string name="patcher_option_paths_gone_title">קבצי אפשרויות תיקון חסרים</string>
     <string name="patcher_option_paths_gone_description">אפשרות תיקון אחת או יותר מצביעות על קבצים שאינם קיימים יותר. הסר את הנתיבים כדי לתקן בלעדיהם, או החזר את הקבצים ונסה שוב</string>
+    <string name="patcher_option_paths_rejected_title">לא ניתן להשתמש בקובצי אפשרויות תיקון</string>
+    <string name="patcher_option_paths_rejected_description">אפשרות תיקון אחת או יותר מפנות לקבצים חסרים או לקבצים שאינם מכילים את מה שהתיקון דורש. הסר את הנתיבים כדי לבצע תיקון בלעדיהם, או תקן את הקבצים לפי הוראות האפשרות ונסה שוב</string>
     <string name="patcher_option_paths_clear">הסר את הנתיבים והמשך</string>
     <string name="patcher_storage_permission_hint">עצה: העבר קבצים ל- /Android/data/app.morphe.manager/files/ - אין צורך ברשאות נוספות</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -626,17 +688,13 @@
     <string name="battery_optimization_dialog_title">הגנה על תיקון רקע</string>
     <string name="battery_optimization_dialog_description">ייתכן שמכשירים מסוימים יפסיקו את המתקן כאשר האפליקציה מצומצמת. אפשר ל-Morphe לפעול ללא הגבלות סוללה כדי להבטיח שהתיקון יושלם באופן מהימן</string>
     <string name="battery_optimization_not_now">לא עכשיו</string>
-    <!-- Memory limit dialog, shown after the patcher process was killed -->
-    <string name="patcher_memory_adjustment_title">אין מספיק זיכרון</string>
-    <string name="patcher_memory_adjustment_description">המתקן הופסק על ידי המערכת בזמן שפעל עם מגבלת זיכרון של %1$d MB. הורדת המגבלה ל-%2$d MB הופכת את המתקן למטרה קטנה יותר ויכולה לאפשר להריצה להסתיים.</string>
-    <string name="patcher_memory_adjustment_description_at_minimum">המתקן הופסק על ידי המערכת בזמן שפעל עם מגבלת זיכרון של %1$d MB, שהיא כבר הנמוכה ביותר הזמינה. נסה לתקן עם פחות מקורות תיקון, או בחר פחות תיקונים.</string>
-    <string name="patcher_memory_adjustment_description_finished">המערכת עצרה את תהליך התיקון בגבול זיכרון של %1$d MB, והוא סיים רק ב-%2$d MB. בפעם הבאה, התחלה מ-%2$d MB תדלג על הניסיון המבוזבז</string>
-    <string name="patcher_memory_adjustment_apply">הורד ל-%1$d MB</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">התיקון מתבצע…</string>
     <string name="patcher_notification_text">הקש כדי לחזור למתקן</string>
-    <string name="patcher_stop_confirm_title">עצור את התיקון</string>
-    <string name="patcher_stop_confirm_description">האם אתה בטוח שברצונך לעצור את תהליך התיקון?</string>
+    <string name="patcher_stop_title">להפסיק את התיקון?</string>
+    <string name="patcher_stop_discards">ההתקדמות עד כה תימחק ושום דבר לא יותקן</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">המשך בתיקון</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">ממפים את האפליקציה שלך למשהו מדהים… 🏆</string>
     <string name="patcher_message_2">מלמדים אפליקציות ישנות טריקים חדשים… 🎩</string>
@@ -666,8 +724,6 @@
     <!-- Expert patcher Screen -->
     <string name="patching_app">מילוי אפליקציה</string>
     <string name="memory_usage">שימוש בזיכרון</string>
-    <!-- "%1$s" is the share of the memory limit the patcher is using, already formatted as a percentage. "%2$s" is that limit in megabytes. -->
-    <string name="memory_usage_detail">%1$s מתוך %2$s MB</string>
     <string name="cpu_usage">שימוש במעבד</string>
     <string name="storage_io_usage">קלט/פלט של אחסון</string>
     <!-- Patcher Screen - Other hidden strings -->
@@ -675,8 +731,10 @@
     <string name="failed_to_execute_patch">נכשל להחיל %s</string>
     <string name="patched_app_save_failed_toast">נכשל לשמור אפליקציה מתוקנת</string>
     <string name="plugin_activity_dialog_body">נדרש אינטראקציה של המשתמש כדי להמשיך עם תוסף זה</string>
-    <string name="patcher_process_exit_message">פועל הפייסר יצא עם קוד %s</string>
-    <string name="patcher_heap_exhausted_message">למתקן נגמר הזיכרון עם ערימת %1$d מגה-בייט. האפליקציה הזו גדולה מדי עבור התיקונים שנבחרו. נסה לתקן עם פחות מקורות תיקון, או בחר פחות תיקונים.</string>
+    <string name="patcher_process_killed_message">המערכת עצרה את המתקן לפני השלמתו, בדרך כלל כדי לשחרר זיכרון. סגור אפליקציות אחרות ונסה שוב</string>
+    <string name="patcher_process_crashed_message">הפאצ\'ר קרס לפני שסיים. אם זה קורה שוב, כבה את \"Use embedded VM\" בהגדרות ודווח על הבעיה עם הלוג</string>
+    <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
+    <string name="patcher_out_of_memory_message">מחולל הפאץ\' מיעד את זיכרון ה-heap עם %1$s MB. האפליקציה גדולה מדי עבור הפאצ\'ים הנבחרים. נסה לגנון עם מעט מקורות פאץ\', או בחר בפאצ\'ים fewer</string>
     <string name="install_app_success">הותקן בהצלחה</string>
     <string name="install_app_fail">נכשל להתקין את האפליקציה: %s</string>
     <string name="install_ignore_signature">התקן בכל זאת</string>
@@ -717,7 +775,6 @@
     <string name="mini_game_pairs_picker_subtitle">הפוך קלפים, מצא את הזוג</string>
     <!-- Settings -->
     <string name="appearance">מראה</string>
-    <string name="advanced">מתקדם</string>
     <string name="system">מערכת</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">אנימציית רקע</string>
@@ -745,6 +802,8 @@
     <!-- %1$s is a holiday background name, such as Halloween. %2$s is a date, such as November 1 -->
     <string name="settings_appearance_seasonal_background_notice">הרקע %1$s מוצג עד %2$s כל עוד ערכות הנושא העונתיות פעילות</string>
     <!-- Settings - Appearance Tab - Theme -->
+    <string name="settings_appearance_display">תצוגה</string>
+    <string name="settings_appearance_effects">אפקטים</string>
     <string name="settings_appearance_theme">גרסה</string>
     <string name="settings_appearance_theme_mode">מצב עיצוב</string>
     <string name="settings_appearance_system">מערכת</string>
@@ -753,52 +812,45 @@
     <string name="settings_appearance_dynamic">Material You</string>
     <string name="settings_appearance_monochrome">מונוכרום</string>
     <string name="settings_appearance_color_style">סגנון צבע</string>
-    <string name="settings_appearance_colors">צבעים</string>
     <string name="settings_appearance_accent_color">צבע מוביל</string>
     <string name="settings_appearance_pure_black">שחור טהור</string>
     <string name="settings_appearance_pure_black_description">משתמש ברקעים שחורים אמיתיים</string>
     <string name="settings_appearance_color_accents">צבעי אפליקציה ומקור</string>
-    <string name="settings_appearance_color_accents_description">משתמש בצבע של כל אפליקציה ומקור במקום צבע ההדגשה</string>
+    <string name="settings_appearance_color_accents_description">משתמש בצבע של כל אפליקציה ומקור במקום בצבע הדגש</string>
     <string name="settings_appearance_outlines">קווי מתאר</string>
     <string name="settings_appearance_outlines_description">מצייר קו מתאר דק סביב כרטיסים, פאנלים וכפתורים</string>
+    <string name="settings_appearance_blur">טשטוש</string>
+    <string name="settings_appearance_blur_description">מטשטש תוכן הנגלל מתחת לכותרות, סרטים ולוחות</string>
     <!-- Settings - Appearance Tab - Language Selector -->
-    <string name="settings_appearance_language_and_display">שפה ותצוגה</string>
     <string name="settings_appearance_app_language">שפת היישום</string>
     <string name="settings_appearance_app_language_current">שפה נוכחית</string>
+    <string name="settings_appearance_translate">עזרו לתרגם את Morphe</string>
     <string name="settings_appearance_translations_info_title">ייתכן שתרגומים עבור חלק מהשפות חסרים או לא שלמים</string>
-    <string name="settings_appearance_translations_info_text">"כדי לתרגם שפות חדשות או לשפר את התרגומים הקיימים, בקר בכתובת
-%s"</string>
     <!-- Settings - Appearance Tab - Interface Scale -->
     <string name="settings_appearance_ui_scale">קנה מידה של הממשק</string>
-    <string name="settings_appearance_ui_scale_current">קנה מידה נוכחי</string>
-    <string name="settings_appearance_ui_scale_description">מגדיל את כל רכיבי האפליקציה, בנוסף לזום המסך ולגודל הגופן של המערכת</string>
-    <string name="settings_appearance_ui_scale_preview_title">הגדרה לדוגמה</string>
-    <string name="settings_appearance_ui_scale_preview_subtitle">טקסט ובקרים בקנה מידה זה</string>
     <!-- Settings - Appearance Tab - Home Screen Section -->
     <string name="settings_appearance_home_screen">מסך הבית</string>
     <string name="settings_appearance_greeting_phrases">משפטי פתיחה</string>
-    <string name="settings_appearance_greeting_phrases_subtitle">הצגת הודעת פתיחה על מסך הבית</string>
-    <string name="settings_appearance_app_grouping">קיבוץ אפליקציות</string>
-    <string name="settings_appearance_app_grouping_description">הצג מתג לקיבוץ אפליקציות לפי מקור או קטגוריה</string>
+    <string name="settings_appearance_greeting_phrases_subtitle">מציג הודעת ברכה</string>
     <string name="settings_appearance_repatch_notice">הודעת תיקון מחדש</string>
-    <string name="settings_appearance_repatch_notice_description">הצג באנר כאשר אפליקציות מטופלות ניתנות לטלאי חוזר</string>
-    <string name="settings_appearance_sort_button">כפתור מיון וסינון</string>
-    <string name="settings_appearance_sort_button_description">הצג את כפתור המיון והסינון במסך הבית</string>
-    <string name="settings_appearance_app_card_colors">צבעי כרטיסי האפליקציה</string>
+    <string name="settings_appearance_repatch_notice_description">מציג באנר כאשר ניתן להחזיר תיקון לאפליקציות שתוקנו</string>
+    <string name="settings_appearance_more_apps_card">כרטיס עוד אפליקציות</string>
+    <string name="settings_appearance_more_apps_card_description">מציג כרטיס מתחת לאפליקציות המוביל לתיקוני קהילה</string>
+    <string name="settings_appearance_app_card_colors">צבעי כרטיסים</string>
     <string name="settings_appearance_app_card_colors_default">ברירת מחדל</string>
-    <string name="settings_appearance_app_card_colors_default_description">להעניק לכל אפליקציה את צבע החבילה שלה</string>
+    <string name="settings_appearance_app_card_colors_default_description">הענק לכל אפליקציה ומקור צבע משלהם</string>
     <string name="settings_appearance_app_card_colors_accent">גוון</string>
-    <string name="settings_appearance_app_card_colors_accent_description">השתמש בצבע הגוון של האפליקציה עבור כרטיסי האפליקציה הביתית</string>
+    <string name="settings_appearance_app_card_colors_accent_description">השתמש בצבע הדגשת האפליקציה עבור כרטיסי אפליקציות ומקורות</string>
     <string name="settings_appearance_app_card_colors_gradient">מעבר</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">השתמש במעבר מותאם אישית אחד עבור כרטיסי האפליקציה הביתית</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">השתמש במעבר צבעים מותאם אישית אחד עבור כרטיסי אפליקציות, שיתמזג לצבע אחד עבור כרטיסי מקורות</string>
     <string name="settings_appearance_app_card_colors_solid">מלא</string>
-    <string name="settings_appearance_app_card_colors_solid_description">השתמש בצבע מותאם אישית אחד עבור כרטיסי האפליקציה הביתית</string>
+    <string name="settings_appearance_app_card_colors_solid_description">השתמש בצבע מותאם אישית אחד עבור כרטיסי אפליקציות ומקורות</string>
     <string name="settings_appearance_app_card_colors_start">צבע התחלה</string>
     <string name="settings_appearance_app_card_colors_middle">צבע אמצע</string>
     <string name="settings_appearance_app_card_colors_end">צבע סיום</string>
     <string name="settings_appearance_app_card_colors_solid_color">צבע מלא</string>
     <string name="settings_appearance_app_card_colors_bundle">צבע חבילת האפליקציה</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">השתמש בצבע של כל אפליקציה כאן, מוצללים אוטומטית להתאמה</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">השתמש כאן בצבע של כל אפליקציה או מקור, עם גוון שיתואם אוטומטית</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">אייקון האפליקציה</string>
     <string name="settings_appearance_app_icon_selector_description">איך Morphe נראה על מסך הבית ובמגירת האפליקציות</string>
@@ -824,12 +876,11 @@
     <string name="settings_appearance_app_icon_mark_white">לבן</string>
     <string name="settings_appearance_app_icon_mark_black">שחור</string>
     <string name="settings_appearance_app_icon_change_dialog_title">שנה את סמל האפליקציה? </string>
-    <string name="settings_appearance_app_icon_change_dialog_message">שנה ל-&lt;b&gt;%s&lt;/b&gt; והפעל מחדש?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe מפעיל מחדש כדי לעבור ל-&lt;b&gt;%s&lt;/b&gt;</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">שנה סמל</string>
     <!-- Settings - Advanced Tab - Updates Section -->
-    <string name="settings_advanced_updates">עדכונים</string>
-    <string name="settings_advanced_patcher">מטלאה</string>
     <string name="settings_advanced_updates_manager_prereleases">עדכוני טרום-שחרור</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">גישה מוקדמת לגרסאות חדשות של Morphe</string>
@@ -839,22 +890,20 @@
 
 תיקונים אינם מושפעים: הפעל תיקוני טרום-שחרור עבור כל מקור ברשימת מקורות התיקונים"</string>
     <string name="settings_advanced_updates_allow_metered">עדכוני נתונים ניידים</string>
-    <string name="settings_advanced_updates_allow_metered_description">מאפשר לאפליקציית Morphe ולעדכוני תיקונים להוריד דרך נתונים ניידים</string>
+    <string name="settings_advanced_updates_allow_metered_description">מוריד עדכוני Morphe ותיקונים דרך רשת סלולרית</string>
     <string name="settings_advanced_updates_background_notifications">התראות עדכונים רקע</string>
     <string name="settings_advanced_updates_background_notifications_description">בדוק מעת לעת אם יש עדכונים ברקע והודיע ​​כאשר הם זמינים</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">התראות דחיפה עבור גרסאות חדשות, גם כאשר האפליקציה סגורה</string>
     <string name="settings_system_notifications_categories">קטגוריות התראות</string>
     <string name="settings_system_notifications_categories_description">בחר/י בהגדרות המערכת אילו עדכונים יודיעו לך</string>
     <string name="settings_advanced_update_interval">תדירות בדיקה</string>
-    <string name="settings_advanced_update_interval_dialog_title">בדיקת עדכונים</string>
-    <string name="settings_advanced_update_interval_hourly">פעם בשעה</string>
-    <string name="settings_advanced_update_interval_daily">פעם ביום</string>
-    <string name="settings_advanced_update_interval_weekly">פעם בשבוע</string>
-    <string name="settings_advanced_update_interval_monthly">פעם בחודש</string>
-    <string name="settings_advanced_update_interval_chip_subtitle">תדירות בדיקה ברקע</string>
-    <string name="settings_advanced_update_interval_battery_warning">בדיקות ברקע עשויות שלא לעבוד באופן אמין על חלק מהמכשירים. יצרנים כמו Xiaomi, Huawei, Samsung ו-OnePlus לעיתים קרובות מוגבלים את תהליכי הרקע כדי לשמר סוללה</string>
+    <string name="settings_advanced_update_interval_hourly">שעתית</string>
+    <string name="settings_advanced_update_interval_daily">יומית</string>
+    <string name="settings_advanced_update_interval_weekly">שבועי</string>
+    <string name="settings_advanced_update_interval_monthly">חודשי</string>
+    <string name="settings_advanced_update_interval_battery_warning">בדיקות רקע עשויות שלא לפעול באופן אמין במכשירים המגבילים אפליקציות ברקע, כגון Xiaomi, Huawei, Samsung ו-OnePlus</string>
     <string name="settings_advanced_external_batch_patch">אפשר טריגרים חיצוניים</string>
-    <string name="settings_advanced_external_batch_patch_description">מאפשר לאפליקציות אוטומציה להתחיל תיקון אצווה באמצעות intent</string>
+    <string name="settings_advanced_external_batch_patch_description">מתיר אפליקציות אוטומציה להתחיל תיקון batch</string>
     <string name="external_batch_patch_title">התחל תיקון באצווה?</string>
     <string name="external_batch_patch_description">%s רוצה ש-Morphe יתקן ויתקין אפליקציות</string>
     <string name="external_batch_patch_trust_caller">אפשר תמיד לאפליקציה זו</string>
@@ -876,22 +925,24 @@
     <string name="notification_mount_replaced_title">%1$s כבר לא מתוקן</string>
     <string name="notification_mount_replaced_text">v%1$s החליפה את v%2$s המתוקנת. פתח את Morphe כדי לשחזר אותה</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
-    <string name="settings_advanced_expert">הגדרות מומחה</string>
     <string name="settings_advanced_expert_mode">מצב מומחה</string>
-    <string name="settings_advanced_expert_mode_description">מאפשר הגדרות והתאמות אישיות תחכוריות של תיקון Morphe</string>
+    <string name="settings_advanced_expert_mode_description">פותח הגדרות מתקדמות לתיקון ואפשרויות תיקון</string>
     <string name="settings_advanced_expert_mode_dialog_title">אפשר את режим מומחה?</string>
     <string name="settings_advanced_expert_mode_dialog_message">מצב מומחה מעניק שליטה רבה יותר על אופן יישום התיקונים, אך הגדרה שגויה של הגדרות במצב מומחה עלולה לגרום לאפליקציה לא מתפקדת</string>
     <string name="settings_advanced_strip_unused_libs">לייעל עבור ארכיטקטורת ההתקן</string>
-    <string name="settings_advanced_strip_unused_libs_description">מסיר ספריות ארכיטקטורת CPU שאינן בשימוש ומודולי APK מפוצלים</string>
+    <string name="settings_advanced_strip_unused_libs_description">מסיר ספריות טבעיות לא בשימוש ופיצולי APK</string>
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
-    <string name="settings_advanced_github_pat_description">נדרש עבור מקורות בקשה רכש</string>
+    <string name="settings_advanced_github_pat_summary">משחרר מקורות של בקשות משיכה ו repos פרטיים</string>
+    <string name="settings_advanced_github_pat_description">למקורות בקשות משיכה, repos פרטיים וגבול קצב גבוה יותר ב-GitHub</string>
     <string name="settings_advanced_github_pat_configured">טוקן תצוגה</string>
-    <string name="settings_advanced_github_pat_how_to_get">כיצד לקבל טוקן</string>
-    <!-- "%s" is "GitHub Personal Access Token", kept in English because GitHub has no localized UI -->
-    <string name="settings_advanced_github_pat_dialog_title">הגדר %s</string>
-    <!-- "%3$s" is "GitHub Personal Access Token", "%2$s" is the GitHub scope name and "%1$s" is the GitHub website. "PAT" is its abbreviation, keep it in English -->
-    <string name="settings_advanced_github_pat_dialog_description">"הגדר %3$s כדי שתוכל להוסיף pull requests כמקורות חיצוניים. צור PAT עם היקף %2$s ב-
-%1$s"</string>
+    <string name="settings_advanced_github_pat_create">צור אסימון ב-GitHub</string>
+    <!-- "%s" is the GitHub scope name, keep it as is -->
+    <string name="settings_advanced_github_pat_create_description">פותח את GitHub עם ההיקף %s כבר נבחר</string>
+    <string name="settings_advanced_github_pat_checking">בודק עם GitHub...</string>
+    <!-- "%s" is the GitHub account name -->
+    <string name="settings_advanced_github_pat_account">מחובר ל-GitHub כ-%s</string>
+    <string name="settings_advanced_github_pat_rejected">GitHub דחה את האסימון הזה. ייתכן שהפך לפג תוקף או שהוסר</string>
+    <string name="settings_advanced_github_pat_unreachable">לא ניתן היה להגיע ל-GitHub כדי לבדוק את האסימון הזה</string>
     <string name="settings_advanced_github_pat_export_include_label">כלול בהגדרות ייצוא</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_include_supporting">מוסיף את PAT זה להגדרות Morphe המיוצאות</string>
@@ -899,7 +950,6 @@
     <string name="settings_advanced_github_pat_export_warning">אל תשתף את הטוקן שלך. אם תכלילו אותו בהגדרות ייצוא, שמור את הקובץ הפרטי כי הוא מכיל את הטוקן</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
     <string name="settings_advanced_patch_options">אפשרויות תיקון</string>
-    <string name="settings_advanced_patch_options_youtube_description">אפשרויות מיתוג וכותרת עליונה</string>
     <string name="settings_advanced_patch_options_restart_message">שנה את שמה של הגרסה</string>
     <string name="settings_advanced_patch_options_expert_mode_notice">במצב מומחה, אפשרויות התיקון יהיו זמינות במהלך תהליך התיקון</string>
     <string name="settings_advanced_patch_options_loading">טוען אפשרויות תיקון…</string>
@@ -913,7 +963,7 @@
     <string name="settings_advanced_patch_options_custom_branding_app_name_hint">הזן שם מותאם אישית</string>
     <string name="settings_advanced_patch_options_path_gone">לא ניתן יותר לקרוא את התיקייה הזו. בחר אותה שוב או נקה אותה, אחרת תהליך התיקון ייעצר וישאל לגביה</string>
     <string name="settings_advanced_patch_options_custom_branding_app_icon">אייקון האפליקציה</string>
-    <string name="settings_advanced_patch_options_custom_branding_app_icon_description">הסמל שבו האפליקציה מתוקנת. הוא משמש גם במקומות שבהם האפליקציה לא יכולה לשנות אותו מאוחר יותר, כגון אנדרואיד אוטו ורשימת האפליקציות בהגדרות המערכת</string>
+    <string name="settings_advanced_patch_options_custom_branding_app_icon_description">הסמל שאיתו האפליקציה מעובדת, המשמש גם במקומות שבהם לא ניתן לשנותו מאוחר יותר, כגון Android Auto</string>
     <string name="settings_advanced_patch_options_custom_branding_app_icon_needs_folder">סמל האפליקציה המותאם אישית צריך תיקייה עם תמונות סמל</string>
     <string name="settings_advanced_patch_options_custom_branding_custom_icon">סמל מותאם אישית</string>
     <string name="settings_advanced_patch_options_custom_branding_custom_icon_instruction">"תיקייה עם תמונות לשימוש כסמל מותאם אישית.
@@ -979,7 +1029,6 @@ drawable-xxhdpi: 387x144 פיקסלים
 
 - drawable-xxxhdpi: 512x192 פיקסלים"</string>
     <!-- Settings - Advanced Tab - Patch Options Section: Hide Shorts -->
-    <string name="settings_advanced_patch_options_hide_shorts_features">הסתר את תכונות Shorts</string>
     <string name="settings_advanced_patch_options_hide_shorts_app_shortcut">הסתר קיצור דרך לאפליקציית Shorts</string>
     <string name="settings_advanced_patch_options_hide_shorts_app_shortcut_description">מסיר Shorts מתפריט הלחיצה הארוכה של המשגר</string>
     <string name="settings_advanced_patch_options_hide_shorts_widget">הסתר את ווידג\'ט ה\"Shorts\"</string>
@@ -987,6 +1036,7 @@ drawable-xxhdpi: 387x144 פיקסלים
     <!-- Settings - System Tab - Installer Section -->
     <string name="installer">מתקין</string>
     <string name="installer_settings_title">מתקין ברירת מחדל</string>
+    <string name="settings_installation">התקנה</string>
     <string name="installer_title">בחר התקן</string>
     <string name="installer_internal_description">משתמש במתקין החבילות של Android</string>
     <string name="installer_play_store_description">משתמש במתקין המערכת ומגדיר את חנות Google Play כמקור ההתקנה</string>
@@ -1017,19 +1067,23 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="installer_unavailable_title">%s אינו זמין</string>
     <string name="installer_unavailable_message">התקן המועדף שלך (%s) אינו זמין כעת. תוכל לתקן את הבעיה ולתחל שוב, או להשתמש בהתקן סטנדרטי במקום זאת</string>
     <string name="installer_unavailable_shizuku_hint">אשר שיזוקה רץ ורשאות מובנות לאפליקציה זו</string>
-    <string name="installer_use_standard">השתמש בסטנדרטי</string>
+    <string name="installer_choose_another">בחר מתקינה אחרת</string>
     <string name="installer_play_store_warning_title">להתקין כ-Play Store?</string>
     <string name="installer_play_store_warning_message">האפליקציה שעברה תיקון תירשם כמותקנת מחנות Google Play. זה יכול לעזור לשירותים כמו Android Auto לזהות אותה כאפליקציית Play Store, אך זה לא מובטח לכל אפליקציה או מכשיר. ההתנהגות עשויה להשתנות בהתאם לגרסת Android, ROM, מותג המכשיר ובדיקות ספציפיות לאפליקציה.</string>
     <string name="installer_play_store_warning_risk">ל-Play Store עשויות להיות עדכונים עבור האפליקציה שעברה תיקון. התקנת עדכון זה תדרוס את קובץ ה-APK המתוקן עם הגרסה המקורית ותסיר את התיקונים. אם תתבקש לעדכן, הקש על תפריט שלוש הנקודות בדף של האפליקציה בחנות Play Store ובחר \"כבוי עדכונים\"</string>
     <string name="installer_play_store_warning_continue">אני מבין, המשך</string>
     <string name="installer_play_store_mode">התקן כ-Play Store</string>
-    <string name="installer_play_store_mode_description">רשום את Google Play Store כמקור ההתקנה עבור שיטת התקנה זו</string>
+    <string name="installer_play_store_mode_description">מסמן את חנות Google Play כמקור התקנה</string>
+    <string name="settings_nomount_only">NoMount בלבד</string>
+    <string name="settings_nomount_only_description">מעמיס אפליקציות רק באמצעות NoMount ולעולם לא חוזר להרכבת bind, כך שהן נשארות לא מועמסות בלעדיו</string>
     <string name="settings_prompt_installer_on_install">בקשת בחירת מתקין</string>
-    <string name="settings_prompt_installer_on_install_description">מציג תיבת דו-שיח לבחירת המתקין בכל פעם שאפליקציה מתוקנת מותקנת</string>
+    <string name="settings_prompt_installer_on_install_description">שואל כיצד להתקין כל אפליקציה: עם רוט לפני ההטמעה, אחרת אחריה</string>
     <string name="settings_auto_install_with_shizuku">התקנה אוטומטית לאחר תיקון</string>
-    <string name="settings_auto_install_with_shizuku_description">מתקין את ה-APK המתוקן מיד עם סיום התיקון</string>
+    <string name="settings_auto_install_with_shizuku_description">מתקין או מעלה את ה-APK המוטמע ברגע שההטמעה מסתיימת</string>
     <string name="settings_auto_uninstall_with_shizuku">הסרה אוטומטית במקרה של התנגשות</string>
-    <string name="settings_auto_uninstall_with_shizuku_description">בעת התקנה אוטומטית עם Shizuku, הסר את האפליקציה הקיימת תחילה אם Android מדווח על התנגשות חתימות. פעולה זו עשויה להסיר נתוני אפליקציה</string>
+    <string name="settings_auto_uninstall_with_shizuku_description">מבטל התקנה של האפליקציה הקיימת במקרה של סתירה בחתימה. זה יכול להסיר נתוני אפליקציה</string>
+    <string name="settings_ignore_install_target_rules">התעלם מדרישות יעד ההתקנה</string>
+    <string name="settings_ignore_install_target_rules_description">מאפשר כיבוי של תיקונים שיעד ההתקנה דורש והפעלה של כאלו שהוא שולל. ייתכן שהאפליקציה המעובדת לא תעבוד</string>
     <string name="settings_auto_uninstall_warning_title">הפעל הסרה אוטומטית?</string>
     <string name="settings_auto_uninstall_warning_message">אם Android מדווח על התנגשות חתימות במהלך ההתקנה האוטומטית של Shizuku, Morphe תסיר את האפליקציה הקיימת לפני התקנת קובץ ה-APK שעבר תיקון</string>
     <string name="settings_auto_uninstall_warning_risk">פעולה זו עשויה להסיר נתוני אפליקציה. אם קובץ ה-APK שעבר תיקון נכשל בהתקנה לאחר ההסרה, ייתכן שהאפליקציה הקודמת כבר נמחקה</string>
@@ -1058,23 +1112,15 @@ drawable-xxhdpi: 387x144 פיקסלים
     <!-- Settings - System Tab - Performance Section -->
     <string name="settings_system_battery_optimization">מיטוב הסוללה</string>
     <string name="settings_system_battery_optimization_description">שומר את התיקון פעיל כאשר האפליקציה ממוזערת</string>
-    <string name="settings_system_background">רקע</string>
-    <string name="settings_system_process_runtime">זמן ריצה של תהליך</string>
-    <string name="settings_system_process_runtime_description">מריץ תיקון בתהליך נפרד ליציבות טובה יותר</string>
-    <string name="settings_system_process_runtime_memory_limit_description">מגבלות גבוהות יותר מאיצות את התיקון במכשירים מתאימים</string>
-    <string name="settings_system_process_runtime_enable">הפעלת זמן ריצה של תהליך</string>
-    <string name="settings_system_memory_limit_subtitle">זיכרון זמין לתיקון </string>
-    <string name="settings_system_process_runtime_heap_limit_ignored">המכשיר התעלם ממגבלת הזיכרון בריצה האחרונה, כך שהתיקון עשוי לחזור לרוץ בתוך Morphe</string>
-    <string name="settings_system_memory_limit_warning">מגבלת זיכרון נמוכה עלולה לגרום לכשלים בעת תיקון אפליקציות גדולות יותר</string>
-    <string name="settings_system_memory_limit_high_warning">מגבלת זיכרון גבוהה עלולה להאבט משמעותית את תהליך התיקון בחלק מהמכשירים. הגדל אותה רק אם התיקון ממשיך להיכשל במגבלות נמוכות יותר.</string>
-    <string name="settings_system_process_runtime_enabled_description">מגבלת MB של %s</string>
-    <string name="settings_system_process_runtime_disabled_description">לחץ כדי להגדיר</string>
-    <string name="settings_system_process_runtime_description_not_available">תכונה זו דורשת אנדרואיד 11 ומעלה</string>
+    <string name="settings_system_process_runtime">זמן ריצה של המתקן</string>
+    <string name="settings_system_jvm_runtime_enable">השתמש ב-JVM מובנה</string>
+    <string name="settings_system_jvm_runtime_description">תיקונים ב-Java VM של Morphe, שעלולים להשתמש ביותר זיכרון. כבה כדי להשתמש ב-runtime של Android</string>
+    <string name="settings_system_jvm_runtime_unavailable">נדרש מכשיר ARM או x86 של 64 סיביות</string>
     <string name="settings_system_patcher_completion_sound">צליל השלמה</string>
     <string name="settings_system_patcher_completion_sound_description">מנגן צליל ייחודי להצלחה או לכישלון כאשר התיקון מסתיים</string>
     <!-- Settings - System Tab - Notifications Section -->
     <string name="settings_system_notifications">עדכונים</string>
-    <string name="settings_system_notifications_description">הגדרת התראות רקע וצלילי השלמה</string>
+    <string name="settings_system_notifications_description">איך Morphe מעדכנת אותך</string>
     <string name="settings_system_notifications_success_sound">צליל הצלחה</string>
     <string name="settings_system_notifications_error_sound">צליל כשל</string>
     <string name="settings_system_notifications_sound_default">ברירת מחדל</string>
@@ -1084,9 +1130,8 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="settings_system_notifications_sound_reset">אפס לברירת מחדל</string>
     <string name="settings_system_notifications_ringtone_picker_title">בחר צליל התראה</string>
     <!-- Settings - System Tab - Import and Export Section -->
-    <string name="settings_system_import_export">ייבוא/ייצא הגדרות</string>
     <string name="settings_system_signing_key">מפתח חתימה</string>
-    <string name="settings_system_signing_key_description">מגבה ומשחזר את המפתח שאיתו נחתמות האפליקציות שעברו טלאי</string>
+    <string name="settings_system_signing_key_description">גבה או שחזר את המפתח החותם את האפליקציות המתוקנות</string>
     <string name="settings_system_signing_key_dialog_description">כל אפליקציה שעברה טלאי ב-Morphe נחתמת באמצעות המפתח הזה. שמור עותק: בלעדיו, אפליקציות שעברו טלאי ניתנות לעדכון רק לאחר הסרת ההתקנה שלהן</string>
     <string name="settings_system_signing_key_missing">Morphe יוצר מפתח עם הטלאי הראשון שלך</string>
     <string name="settings_system_signing_key_created">נוצר ב-%s</string>
@@ -1131,7 +1176,6 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="settings_system_export_debug_logs_export_failed">נכשל לייצא יומנים</string>
     <string name="settings_system_export_debug_logs_export_success">היומנים יוצאו</string>
     <!-- Settings - System Tab - Files & Storage Section -->
-    <string name="settings_system_files">קבצים &amp; אחסון</string>
     <string name="settings_system_apks_size">גודל כולל: %s</string>
     <string name="settings_system_apks_delete_all_confirm">זה ימחק לצמיתות את קבצי ה-APK השמורים המוצגים כאן</string>
     <string name="settings_system_apks_delete_selected_title">למחוק קבצי APK שנבחרו?</string>
@@ -1142,7 +1186,11 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="settings_system_apks_export_zip_failed">נכשל ייצוא אפקים נבחרים</string>
     <!-- Settings - System Tab - Storage Management screen -->
     <string name="settings_system_storage_management_title">ניהול אחסון</string>
-    <string name="settings_system_storage_management_description">סקירת השימוש בדיסק ומחיקת קבצים שנשמרו במטמון</string>
+    <string name="settings_system_storage_management_description">מציג שימוש בכונן ומנקה קבצים במטמון</string>
+    <!-- Shown under how much Morphe takes up. "%1$s" is the space still available on the device, already formatted with its unit. "Free" as in unused, not as in free of charge. -->
+    <string name="settings_system_storage_free">%1$s חינמי</string>
+    <string name="settings_system_storage_saved_apks">APKs שמורים</string>
+    <string name="settings_system_storage_caches">מטמון</string>
     <string name="settings_system_storage_keystore_title">מאגר מפתחות חתימה</string>
     <string name="settings_system_storage_app_data_title">נתוני אפליקציות</string>
     <string name="settings_system_storage_patch_bundles_title">חבילות תיקונים</string>
@@ -1158,6 +1206,8 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="settings_system_storage_clear_all_description">משחרר את כל שטח המטמון הניתן לשחזור בבת אחת</string>
     <string name="settings_system_storage_clear_all_confirm">פעולה זו מנקה תגובות רשת שמורות במטמון, עותקי מתקינים מאוחסנים וקבצים זמניים. קבצי APK מקוריים ומטופלים נשמרים</string>
     <string name="settings_system_storage_cleared">שוחרר %s</string>
+    <string name="settings_system_storage_patch_running_warning">פאץ\' רץ ומשתמש בקבצים אלו. ניקוי שלהם עכשיו יגרום לכשלון</string>
+    <string name="settings_system_storage_clear_anyway">נק בכל זאת</string>
     <string name="settings_system_storage_nothing_to_clear">אין מה לנקות</string>
     <string name="settings_system_storage_open_app_info_title">פתח אחסון אפליקציות Android</string>
     <string name="settings_system_storage_open_app_info_description">נהל או נקה את כל נתוני Morphe דרך הגדרות המערכת</string>
@@ -1167,14 +1217,12 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="settings_system_save_patched_apks_description">שמור עותק של קובץ ה-APK המתוקן לייצוא מאוחר יותר או להתקנה מחדש מהמנהל</string>
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
     <string name="settings_system_patched_apks_title">APKs מתוקנים</string>
-    <string name="settings_system_patched_apks_description">מנהל קבצי אפליקציות מתוקנים שמורים</string>
     <string name="settings_system_patched_apks_empty">עדיין לא נשמרו קבצי APK מתוקנים</string>
     <string name="settings_system_patched_apks_delete_title">למחוק את ה-APK המתוקן?</string>
     <string name="settings_system_patched_apks_deleted">קובץ ה-APK המתוקן נמחק בהצלחה</string>
     <string name="settings_system_patched_apks_delete_all_title">למחוק את כל קבצי ה-APK שעברו תיקון?</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
     <string name="settings_system_original_apks_title">קבצי APK מקוריים</string>
-    <string name="settings_system_original_apks_description">שמור לתיקון מחדש. נשמרת גרסה אחת לכל אפליקציה</string>
     <string name="settings_system_original_apks_empty">לא נשמרו קבצי APK מקוריים</string>
     <string name="settings_system_original_apks_deleted">ה-APK המקורי נמחק בהצלחה</string>
     <string name="settings_system_original_apks_delete_title">האם למחוק את ה-APK המקורי?</string>
@@ -1184,14 +1232,11 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="settings_system_patch_selections_title">ניהול בחירות תיקון</string>
     <string name="settings_system_patch_selections_description">שומר בחירות תיקון, נשמר לאחר הסרה</string>
     <string name="settings_system_patch_selection_reset_all_confirm_title">להחזיר את כל הבחירות?</string>
-    <string name="settings_system_patch_selection_reset_package_confirm_title">להחזיר את בחירת החבילה?</string>
     <string name="settings_system_patch_selection_reset_selected_confirm_title">לאפס את החבילות שנשארו?</string>
     <string name="settings_system_patch_selection_reset_source_confirm_title">להחזיר את בחירת מקור?</string>
     <string name="settings_system_patch_selection_total_summary_format">%1$s על %2$s</string>
-    <string name="settings_system_patch_selection_patches_in_sources_format">%1$s ב-%2$s</string>
     <string name="settings_system_patch_selection_source_format">מקור #%s</string>
     <string name="settings_system_patch_selection_reset_all_warning">פעולה זו תמחק לצמיתות את כל בחירות התיקונים שנשמרו עבור כל החבילות והמקורות</string>
-    <string name="settings_system_patch_selection_reset_package_warning">פעולה זו תמחק לצמיתות את כל בחירות התיקונים שנשמרו עבור &lt;b&gt;%s&lt;/b&gt; בכל המקורות.</string>
     <string name="settings_system_patch_selection_reset_source_warning">פעולה זו תמחק לצמיתות את בחירות התיקונים שנשמרו עבור &lt;b&gt;%1$s&lt;/b&gt; בתוך &lt;b&gt;%2$s&lt;/b&gt;</string>
     <string name="settings_system_patch_selection_reset_selected_warning">פעולה זו תמחק לצמיתות את כל בחירות התיקונים שנשמרו עבור החבילות הנבחרות.</string>
     <string name="settings_system_export_source_data_fail">שגיאה בייצוא נתוני מקור</string>
@@ -1200,29 +1245,45 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="settings_system_import_source_data_success">נתוני מקור יובאו בהצלחה</string>
     <string name="settings_system_selected_patches_section">תיקונים נבחרים</string>
     <string name="settings_system_no_patches_or_options">אין תיקונים או אפשרויות שמורות</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">העתק בחירה מ…</string>
-    <string name="copy_selection_confirm_with_count">העתק %s</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">בחירות</string>
+    <string name="selection_panel_copy_into">העתק אל %s</string>
+    <string name="selection_sets_title">סטים</string>
+    <string name="selection_set_name">שם הסט</string>
+    <string name="selection_set_save">שמור כסט</string>
+    <string name="selection_set_replace">החלף סט</string>
+    <string name="selection_set_saved">נשמר כ-%s</string>
+    <string name="selection_set_applied">הוחלף ל-%s</string>
+    <string name="selection_set_deleted">%s נמחק</string>
+    <string name="selection_set_renamed">שונה ל-%s</string>
+    <string name="selection_set_rename_title">שנה שם של סט</string>
+    <string name="selection_set_delete_title">מחק סט?</string>
+    <string name="selection_set_delete_message">פעולה זו תמחק לצמיתות את הסט %s</string>
     <string name="copy_selection_empty">אין בחירות שמורות אחרות להעתקה מהן</string>
     <string name="copy_selection_available_format">%1$s מתוך %2$s זמינים</string>
-    <string name="copy_selection_same_source">אותו מקור</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">בחירת קבצים מותאמת אישית</string>
-    <string name="settings_system_custom_file_picker_description">דפדף אחסון באמצעות בוחר הקבצים המובנה של Morphe במקום ברירת המערכת</string>
+    <string name="settings_system_custom_file_picker_description">משתמש בבחירת קבצים מובנית של Morphe במקום זו של המערכת</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">מוריד APK מסייע</string>
     <string name="settings_system_apk_download_helper_trusted_count">מהימנות: %1$d מתוך %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">אפליקציות עזר יכולות להוריד עבורך קובצי APK מקוריים. רק אלה שאתה בוטח בהן כאן מוצעות בהוראות ההורדה</string>
+    <string name="settings_system_apk_download_helper_trust_title">לסמוך על העוזר הזה?</string>
     <string name="settings_system_apk_download_helper_warning">קובץ ה-APK מגיע מאפליקציית העזר, לכן סמוך רק על אפליקציות שאתה מכיר. Morphe עדיין בודק את החבילה, הגרסה והחתימה של כל קובץ לפני תיקון.</string>
     <string name="settings_system_apk_download_helper_installed_by">הותקן על ידי %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">המתקין לא ידוע</string>
+    <string name="settings_system_apk_download_helper_open_directly">פתח את העוזר מיד</string>
+    <string name="settings_system_apk_download_helper_open_directly_description">מדלג על הוראות ההורדה ופותח את העוזר המהימן</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">אין קבצים כאן</string>
     <string name="file_picker_read_error">לא ניתן לקרוא תיקייה זו</string>
     <string name="file_picker_internal_storage">אחסון פנימי</string>
     <string name="file_picker_sd_card">כרטיס SD</string>
     <string name="file_picker_root">שורש (/)</string>
+    <string name="file_picker_storage_access_unavailable">במכשיר זה אין מסך המאפשר גישה לכל הקבצים. אפשרו זאת דרך ADB באמצעות: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">אחסון</string>
+    <string name="file_saver_downloads_failed">לא ניתן היה ליצור את הקובץ בתיקיית ההורדות</string>
+    <string name="file_saver_saving_to_downloads">במכשיר זה אין מסך שמירה, לכן הקובץ נשמר בתיקיית ההורדות כ-%1$s</string>
     <string name="file_picker_sort_name_asc">שם (A–Z)</string>
     <string name="file_picker_sort_name_desc">שם (Z–A)</string>
     <string name="file_picker_sort_size_desc">גודל (מהגדול לקטן)</string>
@@ -1234,9 +1295,13 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="settings_system_about">אודות</string>
     <string name="settings_system_manager_description">פרויקט קוד פתוח לתיקון יעיל ומודרני של אפליקציות אנדרואיד פופולריות, המונע על ידי משוב ותרומות של הקהילה</string>
     <string name="credits">קרדיטים</string>
+    <string name="credits_description">האנשים מאחורי Morphe</string>
+    <string name="settings_about_section_project">פרויקט</string>
+    <string name="settings_about_section_help">עזרה</string>
     <string name="credits_current_development">פיתוח נוכחי</string>
     <string name="credits_prior_development">פיתוח קודם</string>
     <string name="opensource_licenses">רישיונות קוד פתוח</string>
+    <string name="opensource_licenses_description">ספריות הבנייה של Morphe</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">בחירה</string>
     <string name="easter_egg_pill_message">קח את הגלולה הכחולה והמודעות יישארו בדיוק במקומן. קח את האדומה וראה עד כמה עמוק מגיע הבייט קוד.</string>
@@ -1255,10 +1320,25 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="patches">תיקונים</string>
     <string name="home">בית</string>
     <string name="settings">הגדרות</string>
+    <string name="apps">אפליקציות</string>
+    <!-- Sections the settings page lists, each opening a page of its own. A summary names what the section holds -->
+    <string name="settings_section_patcher">מְפַתֵּחַ</string>
+    <string name="settings_section_updates">עדכונים</string>
+    <string name="settings_section_patching">מתקן</string>
+    <string name="settings_section_appearance_summary">איך Morphe נראה</string>
+    <string name="settings_section_patch_options_summary">מה מצב פשוט משפר באפליקציות עם</string>
+    <string name="settings_section_general">כללי</string>
+    <string name="settings_section_patcher_summary">איך אפליקציות מתוקנות במכשיר זה</string>
+    <string name="settings_section_help_info">עזרה &amp; מידע</string>
+    <string name="settings_section_about_summary">עוד על Morhe וקיבלת עזרה</string>
+    <string name="settings_section_local_files">קבצים</string>
+    <string name="settings_section_backup">גיבוי</string>
+    <string name="settings_search">חפש בהגדרות</string>
     <string name="yes">כן</string>
     <string name="no">לא</string>
     <string name="all">כולם</string>
     <string name="filter">סינון</string>
+    <string name="group">קבץ</string>
     <string name="reset">איפוס</string>
     <string name="reset_all">אפס הכל</string>
     <string name="apply">החל</string>
@@ -1266,7 +1346,7 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="warning">אזהרה</string>
     <string name="error_">שגיאה</string>
     <string name="failed">נכשל</string>
-    <string name="cancelled">בוטל</string>
+    <string name="canceled">מבוטל</string>
     <string name="ready">מוכן</string>
     <string name="retry">נסה שוב</string>
     <string name="refresh">רענן</string>
@@ -1286,6 +1366,7 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="include">כלול</string>
     <string name="disable">השבת</string>
     <string name="enable">הפעל</string>
+    <string name="trust">סמוך</string>
     <string name="loading">טוען…</string>
     <string name="creating">יוצר…</string>
     <string name="processing_apk">מעבד APK…</string>
@@ -1298,8 +1379,8 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="any_version">כל</string>
     <string name="enabled">הפעל</string>
     <string name="disabled">מושבת</string>
-    <string name="selected">נבחר</string>
-    <string name="not_selected">לא נבחר</string>
+    <string name="state_selected">נבחר</string>
+    <string name="state_not_selected">לא נבחר</string>
     <string name="select_all">בחר הכל</string>
     <string name="deselect_all">בטל בחירה של הכל</string>
     <string name="reorder_list">סדר מחדש רשימה</string>
@@ -1307,12 +1388,16 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="reorder_done">הסדר נשמר</string>
     <string name="reset_order">אפס סדר</string>
     <string name="reset_order_done">איפוס ההזמנה</string>
+    <string name="reset_order_confirm_title">לאפס את הסדר?</string>
+    <string name="reset_order_confirm_message">הרשימה תחזור לסדר ברירת המחדל שלה והסדר שנקבע ידנית יאבד</string>
     <string name="accessibility_select_app">בחר אפליקציה</string>
+    <string name="accessibility_select_source">בחר מקור</string>
     <string name="accessibility_move_up">עלה</string>
     <string name="accessibility_move_down">רד</string>
     <string name="accessibility_app_moved_announcement">%1$s הועבר למקום %2$s מתוך %3$s</string>
     <string name="accessibility_scroll_to_top">גלול אל ראש הרשימה</string>
     <string name="rename">שנה שם</string>
+    <string name="more_options">אפשרויות נוספות</string>
     <string name="import_">ייבוא</string>
     <string name="export">ייצוא</string>
     <string name="copy">העתק</string>
@@ -1323,9 +1408,12 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="expanded">מורחב</string>
     <string name="collapse">צמצם</string>
     <string name="collapsed">מכווץ</string>
-    <string name="available">זמין</string>
     <string name="continue_">המשך</string>
     <string name="version">גרסה</string>
+    <!-- Who made a patch source, as a field label -->
+    <string name="author">יוצר</string>
+    <!-- A file a patch source is added from, as a field label -->
+    <string name="file">קובץ</string>
     <string name="clone">שכפול</string>
     <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">תיקון</string>
@@ -1351,9 +1439,10 @@ drawable-xxhdpi: 387x144 פיקסלים
     <string name="hide">הסתר</string>
     <string name="hidden">מוסתר</string>
     <string name="unhide">הסתר</string>
-    <string name="unhide_done">הוצג</string>
+    <string name="show_all">הצג את כולם</string>
     <string name="ignore">התעלם</string>
     <string name="stop_ignoring">הפסק להתעלם</string>
+    <string name="stop">עצור</string>
     <string name="logs">יומן</string>
     <string name="sources">מקורות</string>
     <string name="installing_ellipsis">מתקין…</string>
@@ -1417,20 +1506,20 @@ drawable-xxhdpi: 387x144 פיקסלים
     <!-- %1$s = current step number, %2$s = total number of steps (e.g. "3 of 13") -->
     <string name="onboarding_step_of">%1$s מתוך %2$s</string>
     <string name="onboarding_sources_desc">נהל את מקורות התיקונים שלך. כל מקור מספק תיקונים שניתן להחיל על האפליקציות שלך</string>
+    <string name="onboarding_other_apps_desc">הוסף תיקון לאפליקציה שאינה ברשימה, מקובץ APK או מאפליקציה המותקנת במכשיר שלך</string>
+    <string name="onboarding_add_source_desc">הוסף מקור תיקון מקישור או מקובץ חבילת תיקונים</string>
+    <string name="onboarding_signing_key_desc">גבה את מפתח החתימה של אפליקציות התיקון שלך. ללאו, ניתן לעדכן אותן רק לאחר הסרת ההתקנה שלהן</string>
     <string name="onboarding_swipe_title">מחוות החלקה</string>
     <string name="onboarding_swipe_desc">החלק ימינה על כרטיס אפליקציה כדי לראות את התיקונים הזמינים. החלק שמאלה כדי להסתיר את הכרטיס ממסך הבית</string>
     <string name="onboarding_settings_desc">התאם אישית את Morphe: מראה, אפשרויות מתקדמות וכלי מערכת</string>
     <string name="onboarding_sources_patches_desc">הקש כדי לראות את כל התיקונים הזמינים ממקור זה</string>
     <string name="onboarding_sources_version_desc">הקש על הגרסה כדי לראות את יומן השינויים המלא עבור מקור זה</string>
+    <string name="onboarding_sources_apps_desc">לחץ כדי לראות אילו אפליקציות מתוקנות על ידי המקור הזה ובחר איזו מהן הוא מציע תיקונים עבורן</string>
     <string name="onboarding_sources_prerelease_desc">הפעל זאת כדי לקבל גרסאות תיקון לפני הפצה ממקור זה</string>
     <string name="onboarding_appearance_tab_desc">התאם אישית את מראה האפליקציה: ערכת נושא, צבע הדגשה ורקע</string>
-    <string name="onboarding_appearance_theme_desc">בחר בין ערכת נושא בהירה, כהה או מערכת. אתה יכול גם לבחור צבע הדגשה מותאם אישית או להפעיל צבע דינמי</string>
     <string name="onboarding_expert_mode_desc">הפעל מצב מומחה כדי לפתוח בחירת תיקונים, אפשרויות מותאמות אישית ותכונות מתקדמות אחרות</string>
     <!-- Translate "System" the same way as the System settings tab -->
-    <string name="onboarding_system_tab_title">לשונית מערכת</string>
-    <string name="onboarding_system_tab_desc">ניהול מחזיקי מפתחות, כלי ייבוא/ייצוא ומידע על אפליקציות</string>
     <string name="onboarding_system_installer_desc">בחר כיצד מותקנות אפליקציות מתוקנות: סטנדרטי, הרכבת שורש או Shizuku</string>
-    <string name="onboarding_system_process_runtime_desc">הפעל תיקון בתהליך נפרד כדי לשפר את היציבות ולשלוט בשימוש בזיכרון. מומלץ לאפליקציות גדולות</string>
     <string name="onboarding_system_file_picker_desc">הפעל כדי להשתמש בדפדפן הקבצים המובנה במקום בוחר המערכת בעת בחירת קבצי APK או מחזיקי מפתחות</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">סיור תכונות מהיר</string>

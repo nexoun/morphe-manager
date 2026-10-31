@@ -1,19 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Home Screen -->
-    <string name="home_other_apps">កម្មវិធីផ្សេង</string>
-    <string name="home_not_patched_yet">មិនទាន់បានបំណេះនៅឡើយទេ</string>
-    <string name="home_app_hide_message">កម្មវិធីនេះនឹងត្រូវបានលាក់មិនបង្ហាញលើអេក្រង់មុខ។ អ្នកអាចបង្ហាញវាឡើងវិញដោយចុចប៊ូតុងនៅខាងក្រោមបំផុតនៃបញ្ជី</string>
+    <!-- Shown under the app a link was opened for -->
+    <!-- Shown when the link was opened for the universal patches of a source, which no app is added with -->
+    <!-- Asked when the link names an app of a source that is already added -->
+    <!-- Asked when a .mpp file opened from a file manager is another version of a local source, %s being its name -->
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available_subtitle">កំណែថ្មីត្រៀមជាស្រេច ដើម្បីដំឡើង</string>
-    <string name="home_update_error">ការអាប់ដេតបានបរាជ័យ</string>
-    <string name="home_updating_sources">កំពុងអាប់ដេតប្រភព…</string>
-    <string name="home_update_success">អាប់ដេតប្រភពបានបញ្ចប់</string>
-    <string name="home_update_success_subtitle">ប្រភពរបស់អ្នកទាន់សម័យហើយ</string>
-    <string name="home_sources_are_loading">ប្រភពកំពុងផ្ទុក សូមរង់ចាំ…</string>
-    <string name="home_category_custom">ផ្ទាល់ខ្លួន</string>
+    <!-- %s is the name of the category -->
+    <!-- %s is the name of the category the apps fall back to -->
     <!-- Home Screen - Home Greetings -->
-    <string name="home_greeting_1">តើកម្មវិធីណាមួយដែលអ្នកចង់ធ្វើបំណេះ?</string>
     <!-- Humorous hype message with light nostalgia -->
     <!-- "Buckle up" referring to fastening your vehicle seat belt. A light-hearted joke to build excitement -->
     <!-- Sarcastic joke about blocking ads, intentionally over-the-top -->
@@ -37,20 +32,19 @@
     <!-- New Year greetings, shown instead of the ones above on December 31 and January 1 -->
     <!-- Pun on the saying "Out with the old, in with the new" -->
     <!-- Home Screen - Sources Management -->
-    <string name="sources_management_title">ប្រភពបំណះ</string>
-    <string name="sources_management_open_in_browser">បើកក្នុងកម្មវិធីច្បោល</string>
-    <string name="sources_management_failed_to_open_url">បរាជ័យក្នុងការបើក URL</string>
+    <!-- Which sources the sources page lists, each with what it keeps -->
+    <!-- Under an app left out of a source that keeps its home screen card because the user has patched it -->
+    <!-- Marks an app (not a patch) the source started supporting since its app list was last opened -->
+    <!-- Under the Bring new apps switch in a source's app list, whichever way it is set. "It" is the patch source -->
+    <!-- Actions of the panel for several selected sources at once -->
     <!-- Home Screen - Sources Dialogs -->
-    <string name="sources_dialog_add_source">បន្ថែមប្រភពបំណះ</string>
-    <string name="sources_dialog_remote_url">URL ប្រភព</string>
-    <!-- Button under the files already picked, which opens the picker again -->
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
-    <string name="sources_update_unavailable">មិនទាន់មានការអាប់ដេតឡើយ</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
+    <!-- %s is the name of the app whose APK was just downloaded -->
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <!-- Home Screen - Home Sub-Dialogs -->
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -68,9 +62,8 @@
     <!-- Caption under the launcher icon recolored by the system theme -->
     <!-- Header Creator -->
     <!-- Batch patching -->
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
-    <string name="shortcut_check_updates_short">ពិនិត្យបច្ចុប្បន្នភាព</string>
     <!-- Home Screen - App Info Screen -->
     <!-- Home Screen - Root Mode -->
     <!-- Patcher Screen -->
@@ -80,14 +73,14 @@
     <!-- Free and total RAM of the device, never its storage -->
     <!-- Size of the patched APK, once patching finished -->
     <!-- How long patching took -->
-    <!-- Average and peak memory the patcher process held while it ran -->
+    <!-- Average and peak heap the patcher held while it ran -->
     <!-- Fastest read or write rate reached while patching, in data per second -->
     <!-- Value of "Libraries": the libraries this device cannot use were dropped from the patched APK -->
     <!-- Value of "Libraries": every library was left in the patched APK -->
     <!-- Patcher Screen - Patcher Steps -->
     <!-- Battery optimization pre-flight dialog -->
-    <!-- Memory limit dialog, shown after the patcher process was killed -->
     <!-- Patcher Screen - Patcher Worker -->
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
     <!-- Patcher Screen - Patcher Messages -->
     <!-- Morphe patches fix YouTube bugs that Google still has not fixed. -->
     <!-- "bytecode" can be translated from "the app code" -->
@@ -95,21 +88,18 @@
     <!-- Quantum physics (box emoji is a reference to Schrödinger's cat). -->
     <!-- Throw away reference to a Saturday Night Live sketch. "fever" means sickness or the flu. "prescription" means medical treatment or can be translated from "cure" -->
     <!-- Expert patcher Screen -->
-    <!-- "%1$s" is the share of the memory limit the patcher is using, already formatted as a percentage. "%2$s" is that limit in megabytes. -->
     <!-- Patcher Screen - Other hidden strings -->
+    <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <!-- Patcher Screen - Mini-games -->
     <!-- Settings -->
     <!-- Settings - Appearance Tab - Background animation -->
-    <string name="settings_appearance_background_none">ឥតមាន</string>
     <!-- %1$s is a holiday background name, such as Halloween. %2$s is a date, such as November 1 -->
     <!-- Settings - Appearance Tab - Theme -->
-    <string name="settings_appearance_system">ប្រព័ន្ធ</string>
     <!-- Settings - Appearance Tab - Language Selector -->
-    <string name="settings_appearance_app_language">ភាសាកម្មវិធី</string>
     <!-- Settings - Appearance Tab - Interface Scale -->
     <!-- Settings - Appearance Tab - Home Screen Section -->
     <!-- Settings - Appearance Tab - App Icon Selector -->
-    <string name="settings_appearance_app_icon_selector_title">អាយខនកម្មវិធី</string>
+    <!-- %s is the name of the icon picked -->
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Settings - Advanced Tab - Updates Section -->
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
@@ -117,47 +107,38 @@
     <!-- Notification content -->
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
-    <!-- "%s" is "GitHub Personal Access Token", kept in English because GitHub has no localized UI -->
-    <!-- "%3$s" is "GitHub Personal Access Token", "%2$s" is the GitHub scope name and "%1$s" is the GitHub website. "PAT" is its abbreviation, keep it in English -->
+    <!-- "%s" is the GitHub scope name, keep it as is -->
+    <!-- "%s" is the GitHub account name -->
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <!-- Settings - Advanced Tab - Patch Options Section -->
     <!-- Settings - Advanced Tab - Patch Options Section: Custom Branding -->
-    <string name="settings_advanced_patch_options_custom_branding_app_name">ឈ្មោះកម្មវិធី</string>
-    <string name="settings_advanced_patch_options_custom_branding_app_icon">អាយខនកម្មវិធី</string>
     <!-- Settings - Advanced Tab - Patch Options Section: Custom Header -->
     <!-- Settings - Advanced Tab - Patch Options Section: Hide Shorts -->
     <!-- Settings - System Tab - Installer Section -->
     <!-- Settings - System Tab - Performance Section -->
-    <string name="settings_system_battery_optimization">ការបង្កើនប្រសិទ្ធភាពថ្ម</string>
     <!-- Settings - System Tab - Notifications Section -->
     <!-- Settings - System Tab - Import and Export Section -->
     <!-- Settings - System Tab - Files & Storage Section -->
     <!-- Settings - System Tab - Storage Management screen -->
+    <!-- Shown under how much Morphe takes up. "%1$s" is the space still available on the device, already formatted with its unit. "Free" as in unused, not as in free of charge. -->
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
-    <!-- Copy selection from another bundle -->
+    <!-- Selection panel: saved selection, sets and copies -->
     <!-- Settings - System Tab - Custom file picker -->
     <!-- Settings - System Tab - APK download helper -->
     <!-- File Picker -->
     <!-- Settings - System Tab - About Section -->
-    <string name="settings_system_about">អំពីកម្មវិធីនេះ</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <!-- Shared strings -->
     <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
-    <string name="home">ទំព័រដើម</string>
-    <string name="remove">ដកចេញ</string>
-    <string name="enabled">បានបើក</string>
-    <string name="disabled">បានផ្ដាច់</string>
-    <string name="rename">ប្ដូរឈ្មោះ</string>
-    <string name="import_">នាំចូល</string>
-    <string name="copy">ចម្លង</string>
+    <!-- Sections the settings page lists, each opening a page of its own. A summary names what the section holds -->
+    <!-- Who made a patch source, as a field label -->
+    <!-- A file a patch source is added from, as a field label -->
     <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
-    <string name="allow">អនុញ្ញាត</string>
     <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
-    <string name="content_show_original">ច្បាប់ដើម</string>
     <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
     <!-- "%s" is the number of changes in the section -->
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
