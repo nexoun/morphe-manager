@@ -214,6 +214,10 @@ class SettingsViewModel(
         prefs.stripUnusedNativeLibs.update(enabled)
     }
 
+    fun setSelectSplitsBeforePatching(enabled: Boolean) = viewModelScope.launch {
+        prefs.selectSplitsBeforePatching.update(enabled)
+    }
+
     /** Whether GitHub has turned down the token in use, which leaves requests going out without it. */
     val gitHubPatRejected = combine(prefs.gitHubPat.flow, api.rejectedPat) { pat, rejected ->
         pat.isNotBlank() && pat == rejected

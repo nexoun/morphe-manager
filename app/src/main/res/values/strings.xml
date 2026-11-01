@@ -1610,4 +1610,15 @@ Do you still want to continue?"</string>
     <string name="tour_prompt_confirm">Show me around</string>
     <string name="onboarding_restart_title">Feature tour</string>
     <string name="onboarding_restart_desc">A guided tour of key features</string>
+    <string name="settings_select_splits">Choose splits before patching</string>
+    <string name="settings_select_splits_description">Ask which splits to include before patching a split APK, including in a batch. Your choices override automatic filtering and keep native libraries from the selected APKs. Plain APKs still use the library stripping setting.</string>
+    <string name="split_selection_title">Choose APK splits</string>
+    <string name="split_selection_description">The base APK is always included. Match device uses the same architecture, language and density rules as automatic filtering. Your selection overrides automatic filtering and library stripping for this archive. Omitting required feature or configuration splits may prevent the patched app from working.</string>
+    <string name="split_selection_all">Select all</string>
+    <string name="split_selection_device">Match device</string>
+    <string name="split_selection_none">Deselect all</string>
+    <string name="split_selection_count">%1$d of %2$d splits selected</string>
+    <string name="split_selection_base">Base APK · required</string>
+    <string name="split_selection_recommended">Included by device matching</string>
+    <string name="split_selection_error">Could not read the splits. Patching has not started.\n%1$s</string>
 </resources>

@@ -284,6 +284,7 @@ class BatchPatcherViewModel(
     val editPanel: SelectionPanelController
 ) : ViewModel(), ApkDownloadHelperHost {
     val state = coordinator.state
+    val splitSelection = coordinator.splitSelection
 
     /** Notification and tour prompts raised once the queue installs or saves an app. */
     val postPatchPrompts = PostPatchPrompts(app, prefs, viewModelScope)

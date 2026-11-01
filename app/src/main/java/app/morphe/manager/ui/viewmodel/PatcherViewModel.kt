@@ -95,6 +95,13 @@ class PatcherViewModel(
 ) : ViewModel(), StepProgressProvider {
 
     private val saveOriginalApkMutex = Mutex()
+    val splitSelection = SplitSelectionPrompt()
+    private var selectedSplitNames: Set<String>?
+        get() = savedStateHandle.get<ArrayList<String>>("selected_split_names")?.toSet()
+        set(value) {
+            if (value == null) savedStateHandle.remove<ArrayList<String>>("selected_split_names")
+            else savedStateHandle["selected_split_names"] = ArrayList(value)
+        }
 
     var exportMetadata by mutableStateOf<PatchedAppExportData?>(null)
         private set
@@ -413,7 +420,7 @@ class PatcherViewModel(
             patchCount = patchCount,
             failedPatch = patchRun.failedPatch,
             bundles = bundles,
-            stripsNativeLibs = prefs.stripUnusedNativeLibs.get()
+            stripsNativeLibs = prefs.stripUnusedNativeLibs.get() && selectedSplitNames == null
         )
     }
 
@@ -650,6 +657,18 @@ class PatcherViewModel(
             return false
         }
 
+        val source = (input.selectedApp as? SelectedApp.Local)?.let { inputFile ?: it.file }
+        selectedSplitNames = null
+        if (prefs.selectSplitsBeforePatching.get() && source != null &&
+            withContext(Dispatchers.IO) { SplitApkPreparer.isSplitArchive(source) }
+        ) {
+            isPatching = false
+            patchRun.holdBeforeStart()
+            selectedSplitNames = splitSelection.select(source) ?: return false
+            isPatching = true
+            patchRun.resumeBeforeStart()
+        }
+
         startWorker(options)
         return true
     }
@@ -665,8 +684,9 @@ class PatcherViewModel(
      * Called after successful patching, independent of installation method.
      * For split APK archives: inputFile points to the merged mono-APK already saved to
      * originalApksDir by the worker via onMergedApkReady - this call will detect the
-     * existing record and skip re-saving. A mount install keeps the archive instead, which is
-     * saved here, as the stock app it restores is installed from the archive's signed splits.
+     * existing record and skip re-saving. Manual split selection and mount installs keep the
+     * archive instead: a later manual run may choose other splits, and a mount restores the
+     * stock app from the archive's signed splits.
      * For regular APK files, saves the APK itself.
      *
      * Thread-safe: uses mutex to prevent concurrent saves from observeWorker and persistPatchedApp.
@@ -949,7 +969,8 @@ class PatcherViewModel(
             },
             onProgress = patchRun::onProgress,
             patchSources = patchSourcesForLog,
-            useMount = usingMountInstall
+            useMount = usingMountInstall,
+            selectedSplitNames = selectedSplitNames
         )
     }
 
@@ -1104,6 +1125,7 @@ class PatcherViewModel(
      * the ViewModel is cleared, preventing background CPU/RAM usage that causes UI jank.
      */
     fun cancelPatching() {
+        splitSelection.cancel()
         patcherWorkerId?.uuid?.let(workManager::cancelWorkById)
     }
 

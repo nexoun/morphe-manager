@@ -24,6 +24,7 @@ import app.morphe.manager.patcher.split.SplitApkPreparer
 import app.morphe.manager.patcher.worker.PatcherWorker
 import app.morphe.manager.ui.model.PatchRunProgress
 import app.morphe.manager.ui.model.SelectedApp
+import app.morphe.manager.ui.model.SplitSelectionPrompt
 import app.morphe.manager.util.AppCoroutineScope
 import app.morphe.manager.util.CompletionSound
 import app.morphe.manager.util.Options
@@ -41,7 +42,8 @@ import java.util.concurrent.ConcurrentHashMap
 private const val TAG = "Morphe BatchPatcher"
 
 /**
- * Drives a batch patch run: one app at a time, no user interaction between items.
+ * Drives a batch patch run one app at a time. Manual split selection, when enabled,
+ * pauses before each split archive is patched.
  *
  * The coordinator lives on the application scope rather than in a ViewModel because a run
  * takes minutes per app and must survive navigating away from the batch screen. Only the
@@ -68,6 +70,7 @@ class BatchPatchCoordinator(
     private val scope: AppCoroutineScope
 ) {
     private val workManager = WorkManager.getInstance(app)
+    val splitSelection = SplitSelectionPrompt()
 
     private val _state = MutableStateFlow<BatchRunState?>(null)
     val state: StateFlow<BatchRunState?> = _state.asStateFlow()
@@ -581,46 +584,61 @@ class BatchPatchCoordinator(
             return
         }
 
-        // Named after the item rather than the app, so two clones of it never share a path
-        val outputFile = workspace.resolve("${item.id}.apk")
-
-        // Only the sources actually contributing patches, so a source the user took nothing
-        // from is left out of the log as well as off the card
-        val patchSources = item.bundles
-            .filter { it.uid in item.selection.keys }
-            .map { PatchSourceRef(it.name, it.version) }
-
-        val args = PatcherWorker.Args(
-            input = selectedApp,
-            output = outputFile.path,
-            selectedPatches = item.selection,
-            options = item.options.sanitizeForPatcher(),
-            logger = runProgress.logger,
-            onPatchCompleted = { runProgress.onPatchCompleted() },
-            onPatchFailed = runProgress::onPatchFailed,
-            onPatchingRestarted = { runProgress.onRestart() },
-            // Called on the worker's thread, while the steps are only ever changed on the main one
-            setInputFile = { file, needsSplit, merged ->
-                withContext(Dispatchers.Main) { runProgress.updateSplitRequirement(file, needsSplit, merged) }
-            },
-            onProgress = runProgress::onProgress,
-            patchSources = patchSources,
-            announceCompletion = false,
-            queuePosition = _state.value?.let { it.position to it.total },
-            useMount = item.useMount
-        )
-
-        val workId = workerRepository.launchExpedited<PatcherWorker, PatcherWorker.Args>(args)
-        activeWorkId = workId
         var succeeded = false
-
         try {
+            val selectedSplitNames = if (prefs.selectSplitsBeforePatching.get() &&
+                selectedApp is SelectedApp.Local &&
+                withContext(Dispatchers.IO) { SplitApkPreparer.isSplitArchive(selectedApp.file) }
+            ) {
+                runProgress.holdBeforeStart()
+                val selected = splitSelection.select(selectedApp.file)
+                if (selected == null) {
+                    updateItem(index) { it.copy(state = BatchItemState.CANCELLED) }
+                    return
+                }
+                runProgress.resumeBeforeStart()
+                selected
+            } else null
+
+            // Named after the item rather than the app, so two clones of it never share a path
+            val outputFile = workspace.resolve("${item.id}.apk")
+
+            // Only the sources actually contributing patches, so a source the user took nothing
+            // from is left out of the log as well as off the card
+            val patchSources = item.bundles
+                .filter { it.uid in item.selection.keys }
+                .map { PatchSourceRef(it.name, it.version) }
+
+            val args = PatcherWorker.Args(
+                input = selectedApp,
+                output = outputFile.path,
+                selectedPatches = item.selection,
+                options = item.options.sanitizeForPatcher(),
+                logger = runProgress.logger,
+                onPatchCompleted = { runProgress.onPatchCompleted() },
+                onPatchFailed = runProgress::onPatchFailed,
+                onPatchingRestarted = { runProgress.onRestart() },
+                // Called on the worker's thread, while the steps are only ever changed on the main one
+                setInputFile = { file, needsSplit, merged ->
+                    withContext(Dispatchers.Main) { runProgress.updateSplitRequirement(file, needsSplit, merged) }
+                },
+                onProgress = runProgress::onProgress,
+                patchSources = patchSources,
+                announceCompletion = false,
+                queuePosition = _state.value?.let { it.position to it.total },
+                useMount = item.useMount,
+                selectedSplitNames = selectedSplitNames
+            )
+
+            val workId = workerRepository.launchExpedited<PatcherWorker, PatcherWorker.Args>(args)
+            activeWorkId = workId
+
             val finished = workManager.getWorkInfoByIdFlow(workId).first { it?.state?.isFinished == true }
 
             when (finished?.state) {
                 WorkInfo.State.SUCCEEDED -> {
                     val retained = withContext(NonCancellable) {
-                        finishSuccessfulItem(item, selectedApp, outputFile)
+                        finishSuccessfulItem(item, selectedApp, outputFile, selectedSplitNames != null)
                     }
                     succeeded = true
                     updateItem(index) {
@@ -723,7 +741,8 @@ class BatchPatchCoordinator(
     private suspend fun finishSuccessfulItem(
         item: BatchPatchItem,
         selectedApp: SelectedApp,
-        outputFile: File
+        outputFile: File,
+        preserveSplitArchive: Boolean
     ): File? = withContext(Dispatchers.IO) {
         if (!outputFile.exists()) return@withContext null
 
@@ -733,7 +752,7 @@ class BatchPatchCoordinator(
             ?: "unspecified"
         val currentPackageName = patchedInfo?.packageName ?: item.packageName
 
-        saveOriginalApk(item, selectedApp, version)
+        saveOriginalApk(item, selectedApp, version, preserveSplitArchive)
 
         val isClone = item.producesCloneAs(currentPackageName)
         // A configuration belongs to the card it was built from, which is the app itself unless
@@ -804,16 +823,17 @@ class BatchPatchCoordinator(
     /**
      * Keeps the unpatched APK for future runs. Split archives are skipped because the patcher
      * already stored the merged mono-APK it built from them, which is the better input for a
-     * later run than the archive itself. A mount keeps the archive, as the stock app it restores
-     * is installed from its signed splits.
+     * later run than the archive itself. Manual selection keeps the archive so later runs can
+     * choose different splits. A mount also keeps it to restore the stock app from signed splits.
      */
     private suspend fun saveOriginalApk(
         item: BatchPatchItem,
         selectedApp: SelectedApp,
-        patchedVersion: String
+        patchedVersion: String,
+        preserveSplitArchive: Boolean
     ) {
         val file = (selectedApp as? SelectedApp.Local)?.file?.takeIf { it.exists() } ?: return
-        if (!item.useMount && SplitApkPreparer.isSplitArchive(file)) return
+        if (!item.useMount && !preserveSplitArchive && SplitApkPreparer.isSplitArchive(file)) return
         // Recorded under its own version, which a patch may have renamed in the patched build
         val version = pm.getPackageInfo(file)?.versionName?.takeUnless { it.isBlank() }
             ?: item.version

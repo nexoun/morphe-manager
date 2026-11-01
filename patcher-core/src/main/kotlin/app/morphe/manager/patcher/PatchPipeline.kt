@@ -77,8 +77,10 @@ class PatchPipeline(
                 preparation.file
             }
 
+            // A selected ABI split must not have its libraries stripped after merging.
+            // Plain APKs retain the existing library-stripping behavior.
             val keepArchitectures =
-                if (request.stripUnusedNativeLibs) withContext(Dispatchers.IO) {
+                if (request.stripUnusedNativeLibs && !(preparation.merged && request.selectedSplitNames != null)) withContext(Dispatchers.IO) {
                     NativeLibs.keptArchitectures(input, request.device.supportedAbis)
                 } else {
                     emptySet()
@@ -109,7 +111,8 @@ class PatchPipeline(
                 device = request.device,
                 logger = logger,
                 skipUnneededSplits = request.stripUnusedNativeLibs,
-                onEvent = { events.trySend(it) }
+                onEvent = { events.trySend(it) },
+                selectedSplitNames = request.selectedSplitNames
             )
         } finally {
             events.close()

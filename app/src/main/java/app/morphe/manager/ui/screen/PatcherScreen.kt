@@ -360,6 +360,17 @@ private fun PatcherScreenContent(
         )
     }
 
+    DialogHost(target = patcherViewModel.splitSelection.request) { request ->
+        SplitSelectionDialog(
+            request = request,
+            onConfirm = patcherViewModel.splitSelection::confirm,
+            onDismiss = {
+                patcherViewModel.splitSelection.cancel()
+                onBackClick()
+            }
+        )
+    }
+
     // Missing patches pre-flight dialog
     // Shown when the saved selection names patches the sources no longer offer
     DialogHost(target = patcherViewModel.missingPatchWarning) { warning ->

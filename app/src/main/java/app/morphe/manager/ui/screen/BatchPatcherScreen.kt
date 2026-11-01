@@ -41,6 +41,7 @@ import app.morphe.manager.ui.screen.patcher.PatcherErrorInfo
 import app.morphe.manager.ui.screen.patcher.PatchingBackgroundSpeedEffect
 import app.morphe.manager.ui.screen.patcher.PostPatchPromptDialogs
 import app.morphe.manager.ui.screen.patcher.SimplePatchingInProgress
+import app.morphe.manager.ui.screen.patcher.SplitSelectionDialog
 import app.morphe.manager.ui.screen.patcher.game.MiniGameState
 import app.morphe.manager.ui.screen.patcher.rememberDisplayedPatchProgress
 import app.morphe.manager.ui.screen.settings.system.InstallerFlowDialogs
@@ -87,6 +88,15 @@ fun BatchPatcherScreen(
     }
 
     KeepScreenOn(state?.isActive == true)
+
+    DialogHost(target = viewModel.splitSelection.request) { request ->
+        SplitSelectionDialog(
+            request = request,
+            onConfirm = viewModel.splitSelection::confirm,
+            // Canceling here stops the queue, as canceling the patching screen does.
+            onDismiss = viewModel::cancel
+        )
+    }
 
     val openApkPicker = rememberAdaptiveFilePicker(
         mimeTypes = APK_FILE_MIME_TYPES,

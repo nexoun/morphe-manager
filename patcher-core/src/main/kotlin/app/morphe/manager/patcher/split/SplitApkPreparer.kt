@@ -117,6 +117,9 @@ object SplitApkPreparer {
      * a single APK and returns a [PreparationResult] pointing to the merged file.
      * If [source] is already a plain APK, returns a [PreparationResult] wrapping it unchanged.
      *
+     * [selectedSplitNames], when non-null, overrides automatic filtering. An empty set keeps
+     * only the base APK; the base is always included even if omitted from the selection.
+     *
      * The caller is responsible for invoking [PreparationResult.cleanup] when the result is no
      * longer needed to remove temporary files.
      */
@@ -126,7 +129,8 @@ object SplitApkPreparer {
         device: DeviceConfig,
         logger: Logger,
         skipUnneededSplits: Boolean = false,
-        onEvent: ((SplitPreparationEvent) -> Unit)? = null
+        onEvent: ((SplitPreparationEvent) -> Unit)? = null,
+        selectedSplitNames: Set<String>? = null
     ): PreparationResult {
         if (!isSplitArchive(source)) {
             return PreparationResult(source, merged = false)
@@ -145,7 +149,8 @@ object SplitApkPreparer {
                 modulesDir,
                 device.takeIf { skipUnneededSplits },
                 logger,
-                onEvent
+                onEvent,
+                selectedSplitNames
             )
             logger.info("Extracted ${entries.size} split modules: ${entries.joinToString { it.name }}")
             logger.info("Module sizes: ${entries.joinToString { "${it.name}=${it.file.length()} bytes" }}")
@@ -209,6 +214,45 @@ object SplitApkPreparer {
         runCatching {
             ZipFile(file).use { zip -> splitModuleEntries(zip).any() }
         }.getOrDefault(false)
+
+    /** One archive entry, with the same device recommendation used by automatic filtering. */
+    data class Module(val name: String, val isBase: Boolean, val matchesDevice: Boolean)
+
+    /** Reads manifests without extracting files; base identity never depends on a file name. */
+    fun selectableModules(source: File, device: DeviceConfig): List<Module> =
+        ZipFile(source).use { zip ->
+            val entries = splitModuleEntries(zip).toList()
+            val bases = baseModuleNames(zip, entries)
+            val unneeded = unneededModules(zip, entries, device)
+            entries.map { Module(it.name, it.name in bases, it.name !in unneeded) }
+                .sortedWith(compareByDescending<Module> { it.isBase }.thenBy { it.name })
+        }
+
+    private fun baseModuleNames(zip: ZipFile, entries: List<ZipEntry>): Set<String> {
+        require(entries.map { it.name }.distinct().size == entries.size) {
+            "Split archive contains duplicate APK names."
+        }
+        val bases = entries.filter { isBaseModule(zip, it) }.mapTo(linkedSetOf()) { it.name }
+        require(bases.size == 1) { "Split archive must contain exactly one base APK." }
+        return bases
+    }
+
+    /** A manual selection wins over filtering. Validate again in the worker before extracting. */
+    internal fun selectedModules(
+        zip: ZipFile,
+        entries: List<ZipEntry>,
+        selectedSplitNames: Set<String>?,
+        device: DeviceConfig?
+    ): List<ZipEntry> {
+        if (selectedSplitNames == null) {
+            val skipped = device?.let { unneededModules(zip, entries, it) }.orEmpty()
+            return entries.filterNot { it.name in skipped }
+        }
+        val bases = baseModuleNames(zip, entries)
+        val names = entries.mapTo(hashSetOf()) { it.name }
+        require(names.containsAll(selectedSplitNames)) { "Selected splits are no longer in the archive." }
+        return entries.filter { it.name in bases || it.name in selectedSplitNames }
+    }
 
     private data class ExtractedModule(val name: String, val file: File)
 
@@ -395,7 +439,8 @@ object SplitApkPreparer {
         targetDir: File,
         skipUnneededFor: DeviceConfig?,
         logger: Logger,
-        onEvent: ((SplitPreparationEvent) -> Unit)? = null
+        onEvent: ((SplitPreparationEvent) -> Unit)? = null,
+        selectedSplitNames: Set<String>? = null
     ): List<ExtractedModule> =
         runInterruptible(Dispatchers.IO) {
             val extracted = mutableListOf<ExtractedModule>()
@@ -406,11 +451,15 @@ object SplitApkPreparer {
                     throw IOException("Split archive does not contain any APK entries.")
                 }
 
-                val skipped = skipUnneededFor?.let { unneededModules(zip, allEntries, it) }.orEmpty()
+                val apkEntries = selectedModules(zip, allEntries, selectedSplitNames, skipUnneededFor)
+                val kept = apkEntries.mapTo(hashSetOf()) { it.name }
+                val skipped = allEntries.filterNot { it.name in kept }.map { it.name }
                 if (skipped.isNotEmpty()) {
-                    logger.info("Skipping ${skipped.size} unneeded split modules: ${skipped.joinToString()}")
+                    logger.info("Skipping ${skipped.size} split modules: ${skipped.joinToString()}")
                 }
-                val apkEntries = allEntries.filterNot { it.name in skipped }
+                if (selectedSplitNames != null) {
+                    logger.info("Using manual split selection: ${kept.joinToString()}")
+                }
 
                 onEvent?.invoke(SplitPreparationEvent.Extracting)
                 apkEntries.forEach { entry ->

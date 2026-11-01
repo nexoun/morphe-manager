@@ -133,6 +133,7 @@ class PreferencesManager(
     val useExpertMode = booleanPreference("use_expert_mode", false)
 
     val stripUnusedNativeLibs = booleanPreference("strip_unused_native_libs", false)
+    val selectSplitsBeforePatching = booleanPreference("select_splits_before_patching", false)
 
     // System tab
     val installerPrimary = stringPreference("installer_primary", InstallerPreferenceTokens.INTERNAL)

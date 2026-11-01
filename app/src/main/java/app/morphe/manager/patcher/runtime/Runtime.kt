@@ -11,12 +11,9 @@
 package app.morphe.manager.patcher.runtime
 
 import android.content.Context
-import android.content.res.Resources
-import android.os.Build
 import androidx.work.ForegroundInfo
 import app.morphe.manager.data.platform.Filesystem
 import app.morphe.manager.domain.repository.PatchBundleRepository
-import app.morphe.manager.patcher.DeviceConfig
 import app.morphe.manager.patcher.PatchRequest
 import app.morphe.manager.patcher.PatchingListener
 import app.morphe.manager.patcher.logger.Logger
@@ -63,6 +60,7 @@ class Runtime(
      *                         cannot use are dropped.
      * @param onMergedApkReady Called with the merged APK when a split archive patched successfully.
      *                         The runtime has no further use for the file, so it may be moved.
+     * @param selectedSplitNames Explicit split entry names, or null for automatic handling.
      * @return How long patching took.
      */
     suspend fun execute(
@@ -76,7 +74,8 @@ class Runtime(
         onPatchFailed: (String) -> Unit,
         onProgress: ProgressEventHandler,
         stripUnusedNativeLibs: Boolean,
-        onMergedApkReady: (suspend (File) -> Unit)? = null
+        onMergedApkReady: (suspend (File) -> Unit)? = null,
+        selectedSplitNames: Set<String>? = null
     ): Duration {
         val mergedApk = fs.tempDir.resolve("merged-${System.currentTimeMillis()}.apk")
         val request = PatchRequest(
@@ -88,7 +87,8 @@ class Runtime(
             workspaceDir = context.cacheDir.resolve("patch-workspace").absolutePath,
             bundles = requestedBundles(selectedPatches, options),
             stripUnusedNativeLibs = stripUnusedNativeLibs,
-            device = deviceConfig()
+            device = deviceConfig(),
+            selectedSplitNames = selectedSplitNames
         )
         val listener = ProgressReporter(context, logger, onProgress, onPatchCompleted, onPatchFailed)
 
@@ -131,14 +131,4 @@ class Runtime(
             }
         }
 
-    // The system's own configuration rather than the app's, which an in-app language overrides
-    private fun deviceConfig(): DeviceConfig {
-        val system = Resources.getSystem()
-        val locales = system.configuration.locales
-        return DeviceConfig(
-            supportedAbis = Build.SUPPORTED_ABIS.filter { it.isNotBlank() },
-            localeTags = (0 until locales.size()).map { locales[it].toLanguageTag() },
-            densityDpi = system.displayMetrics.densityDpi
-        )
-    }
 }

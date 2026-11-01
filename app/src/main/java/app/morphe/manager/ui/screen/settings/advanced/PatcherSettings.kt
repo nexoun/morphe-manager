@@ -28,6 +28,7 @@ import org.koin.androidx.compose.koinViewModel
 fun PatcherSettings(settingsViewModel: SettingsViewModel = koinViewModel()) {
     val prefs = settingsViewModel.prefs
     val stripUnusedNativeLibs by prefs.stripUnusedNativeLibs.getAsState()
+    val selectSplitsBeforePatching by prefs.selectSplitsBeforePatching.getAsState()
     val externalBatchPatchEnabled by prefs.externalBatchPatchEnabled.getAsState()
 
     SettingsColumn {
@@ -55,6 +56,13 @@ fun PatcherSettings(settingsViewModel: SettingsViewModel = koinViewModel()) {
                     icon = MaterialSymbols.Rounded.Layers_clear,
                     title = stringResource(R.string.settings_advanced_strip_unused_libs),
                     subtitle = stringResource(R.string.settings_advanced_strip_unused_libs_description)
+                )
+                SettingsSwitchItem(
+                    checked = selectSplitsBeforePatching,
+                    onToggle = { settingsViewModel.setSelectSplitsBeforePatching(!selectSplitsBeforePatching) },
+                    icon = MaterialSymbols.Rounded.Checklist,
+                    title = stringResource(R.string.settings_select_splits),
+                    subtitle = stringResource(R.string.settings_select_splits_description)
                 )
                 // Entry point other apps use to start a re-patch queue
                 SettingsSwitchItem(

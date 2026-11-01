@@ -27,7 +27,9 @@ data class PatchRequest(
     val workspaceDir: String,
     val bundles: List<Bundle>,
     val stripUnusedNativeLibs: Boolean,
-    val device: DeviceConfig
+    val device: DeviceConfig,
+    /** Null keeps automatic behavior; an empty set deliberately keeps only the base APK. */
+    val selectedSplitNames: Set<String>? = null
 ) {
     /**
      * @param uid The bundle as the app knows it.

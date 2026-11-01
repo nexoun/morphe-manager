@@ -111,7 +111,9 @@ class PatcherWorker(
         /** Place of this app in the queue and the queue total, null for a single run. */
         val queuePosition: Pair<Int, Int>? = null,
         /** Whether the build is mounted over the stock app rather than installed. */
-        val useMount: Boolean = false
+        val useMount: Boolean = false,
+        /** Explicit split entry names; null preserves the existing automatic behavior. */
+        val selectedSplitNames: Set<String>? = null
     ) {
         val packageName get() = input.packageName
     }
@@ -386,8 +388,9 @@ class PatcherWorker(
             keystoreManager.preloadSigner()
 
             val vm = patcherProcesses.preferredVm()
-            val stripNativeLibs = prefs.stripUnusedNativeLibs.get()
             val inputIsSplitArchive = SplitApkPreparer.isSplitArchive(inputFile)
+            val manualSplits = args.selectedSplitNames.takeIf { inputIsSplitArchive }
+            val stripNativeLibs = prefs.stripUnusedNativeLibs.get() && manualSplits == null
             // The architecture the patches were selected against, worth a line of its own now
             // that a patch can declare itself unavailable for the one the input carries. Read
             // from the app rather than from [inputFile], which for an installed one is the base
@@ -473,7 +476,9 @@ class PatcherWorker(
                 args.onPatchFailed,
                 ::updateProgress,
                 stripNativeLibs,
-                onMergedApkReady.takeUnless { args.useMount }
+                // Keep the full original archive so a later run can choose different splits.
+                onMergedApkReady.takeUnless { args.useMount || manualSplits != null },
+                selectedSplitNames = manualSplits
             )
 
             val elapsed = try {
